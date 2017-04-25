@@ -297,9 +297,6 @@ public class WifiAwareManagerFacade extends RpcReceiver {
         if (j.has("TtlSec")) {
             builder.setTtlSec(j.getInt("TtlSec"));
         }
-        if (j.has("MatchStyle")) {
-            builder.setMatchStyle(j.getInt("MatchStyle"));
-        }
         if (j.has("EnableTerminateNotification")) {
             builder.setTerminateNotificationEnabled(j.getBoolean("TerminateNotificationEnabled"));
         }
@@ -337,7 +334,7 @@ public class WifiAwareManagerFacade extends RpcReceiver {
     public void wifiAwareDestroyAll() {
         synchronized (mLock) {
             for (int i = 0; i < mSessions.size(); ++i) {
-                mSessions.valueAt(i).destroy();
+                mSessions.valueAt(i).close();
             }
             mSessions.clear();
 
@@ -375,7 +372,7 @@ public class WifiAwareManagerFacade extends RpcReceiver {
                     "Calling WifiAwareDisconnect before session (client ID " + clientId
                             + ") is ready/or already disconnected");
         }
-        session.destroy();
+        session.close();
     }
 
     @Rpc(description = "Publish.")
@@ -429,7 +426,7 @@ public class WifiAwareManagerFacade extends RpcReceiver {
                         "Calling WifiAwareTerminateSession before session (session ID "
                                 + sessionId + ") is ready");
             }
-            session.destroy();
+            session.close();
             mDiscoverySessions.remove(sessionId);
         }
     }
