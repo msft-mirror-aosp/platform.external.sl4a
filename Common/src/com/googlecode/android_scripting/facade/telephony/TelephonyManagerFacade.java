@@ -16,12 +16,17 @@
 
 package com.googlecode.android_scripting.facade.telephony;
 
+import android.annotation.Nullable;
 import android.app.Service;
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.net.TrafficStats;
 import android.os.RemoteException;
+import android.os.SystemProperties;
+import android.provider.Telephony;
 import android.telephony.CellInfo;
 import android.telephony.CellLocation;
 import android.telephony.NeighboringCellInfo;
@@ -29,15 +34,12 @@ import android.telephony.PhoneStateListener;
 import android.telephony.SignalStrength;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
-import android.provider.Telephony;
 
 import com.android.internal.telephony.RILConstants;
 import com.android.internal.telephony.TelephonyProperties;
+
 import com.google.common.io.BaseEncoding;
-
-import android.content.ContentValues;
-import android.os.SystemProperties;
-
+import com.googlecode.android_scripting.Log;
 import com.googlecode.android_scripting.facade.AndroidFacade;
 import com.googlecode.android_scripting.facade.EventFacade;
 import com.googlecode.android_scripting.facade.FacadeManager;
@@ -58,12 +60,12 @@ import com.googlecode.android_scripting.facade.telephony.TelephonyStateListeners
 import com.googlecode.android_scripting.jsonrpc.RpcReceiver;
 import com.googlecode.android_scripting.rpc.Rpc;
 import com.googlecode.android_scripting.rpc.RpcDefault;
-import com.googlecode.android_scripting.rpc.RpcParameter;
-import com.googlecode.android_scripting.Log;
 import com.googlecode.android_scripting.rpc.RpcOptional;
+import com.googlecode.android_scripting.rpc.RpcParameter;
 
-import java.util.List;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * Exposes TelephonyManager functionality.
@@ -114,6 +116,19 @@ public class TelephonyManagerFacade extends RpcReceiver {
         mSubscriptionManager = SubscriptionManager.from(mService);
     }
 
+    /**
+    * Reset TelephonyManager settings to factory default.
+    * @param subId the subriber id to be reset, use default id if not provided.
+    */
+    @Rpc(description = "Resets TelephonyManager settings to factory default.")
+    public void telephonyFactoryReset(
+            @RpcOptional @RpcParameter(name = "subId") Integer subId) {
+        if (subId == null) {
+            subId = SubscriptionManager.getDefaultVoiceSubscriptionId();
+        }
+        mTelephonyManager.factoryReset(subId);
+    }
+
     @Rpc(description = "Set network preference.")
     public boolean telephonySetPreferredNetworkTypes(
         @RpcParameter(name = "nwPreference") String nwPreference) {
@@ -133,6 +148,16 @@ public class TelephonyManagerFacade extends RpcReceiver {
         } else {
             return false;
         }
+    }
+
+    /**
+    * Set network selection mode to automatic for subscriber.
+    * @param subId the subriber id to be set.
+    */
+    @Rpc(description = "Set network selection mode to automatic for subscriber.")
+    public void telephonySetNetworkSelectionModeAutomaticForSubscription(
+            @RpcParameter(name = "subId") Integer subId) {
+        mTelephonyManager.setNetworkSelectionModeAutomatic(subId);
     }
 
     @Rpc(description = "Get network preference.")
@@ -645,6 +670,18 @@ public class TelephonyManagerFacade extends RpcReceiver {
             mTelephonyManager.getPhoneType());
     }
 
+    /**
+    * Get device phone type for a subscription.
+    * @param subId the subscriber id
+    * @return the phone type string for the subscriber.
+    */
+    @Rpc(description = "Returns the device phone type for a subscription.")
+    public String telephonyGetPhoneTypeForSubscription(
+                  @RpcParameter(name = "subId") Integer subId) {
+        return TelephonyUtils.getPhoneTypeString(
+            mTelephonyManager.getCurrentPhoneType(subId));
+    }
+
     @Rpc(description = "Returns the MCC for default subscription ID")
     public String telephonyGetSimCountryIso() {
          return telephonyGetSimCountryIsoForSubscription(
@@ -700,7 +737,7 @@ public class TelephonyManagerFacade extends RpcReceiver {
     @Rpc(description = "Returns the state of the SIM card for default slot ID.")
     public String telephonyGetSimState() {
         return telephonyGetSimStateForSlotId(
-                  mTelephonyManager.getDefaultSim());
+                  mTelephonyManager.getSlotIndex());
     }
 
     @Rpc(description = "Returns the state of the SIM card for specified slot ID.")
@@ -737,6 +774,30 @@ public class TelephonyManagerFacade extends RpcReceiver {
             Log.e("Exception in phoneGetIccSimChallengeResponseForSubscription" + e.toString());
             return null;
         }
+    }
+
+    /**
+    * Supply the puk code and pin for locked SIM.
+    * @param puk the puk code string
+    * @param pin the puk pin string
+    * @return    true or false for supplying the puk code and pin successfully or unsuccessfully.
+    */
+    @Rpc(description = "Supply Puk and Pin for locked SIM.")
+    public boolean telephonySupplyPuk(
+            @RpcParameter(name = "puk") String puk,
+            @RpcParameter(name = "pin") String pin) {
+        return mTelephonyManager.supplyPuk(puk, pin);
+    }
+
+    /**
+    * Supply pin for locked SIM.
+    * @param pin the puk pin string
+    * @return    true or false for supplying the pin successfully or unsuccessfully.
+    */
+    @Rpc(description = "Supply Pin for locked SIM.")
+    public boolean telephonySupplyPin(
+            @RpcParameter(name = "pin") String pin) {
+        return mTelephonyManager.supplyPin(pin);
     }
 
     @Rpc(description = "Returns the unique subscriber ID (such as IMSI) " +
@@ -810,7 +871,7 @@ public class TelephonyManagerFacade extends RpcReceiver {
     @Rpc(description = "Returns the unique device ID such as MEID or IMEI " +
                        "for deault sim slot ID, null if unavailable")
     public String telephonyGetDeviceId() {
-        return telephonyGetDeviceIdForSlotId(mTelephonyManager.getDefaultSim());
+        return telephonyGetDeviceIdForSlotId(mTelephonyManager.getSlotIndex());
     }
 
     @Rpc(description = "Returns the unique device ID such as MEID or IMEI for" +
@@ -1046,6 +1107,56 @@ public class TelephonyManagerFacade extends RpcReceiver {
             mTelephonyManager.getDataState());
     }
 
+    @Rpc(description = "Returns Total Rx Bytes.")
+    public long getTotalRxBytes() {
+        return TrafficStats.getTotalRxBytes();
+    }
+
+    @Rpc(description = "Returns Total Tx Bytes.")
+    public long getTotalTxBytes() {
+        return TrafficStats.getTotalTxBytes();
+    }
+
+    @Rpc(description = "Returns Total Rx Packets.")
+    public long getTotalRxPackets() {
+        return TrafficStats.getTotalRxPackets();
+    }
+
+    @Rpc(description = "Returns Total Tx Packets.")
+    public long getTotalTxPackets() {
+        return TrafficStats.getTotalTxPackets();
+    }
+
+    @Rpc(description = "Returns Mobile Network Rx Bytes.")
+    public long getMobileRxBytes() {
+        return TrafficStats.getMobileRxBytes();
+    }
+
+    @Rpc(description = "Returns Mobile Network Tx Bytes.")
+    public long getMobileTxBytes() {
+        return TrafficStats.getMobileTxBytes();
+    }
+
+    @Rpc(description = "Returns Mobile Network Packets.")
+    public long getMobileRxPackets() {
+        return TrafficStats.getMobileRxPackets();
+    }
+
+    @Rpc(description = "Returns Mobile Network Packets.")
+    public long getMobileTxPackets() {
+        return TrafficStats.getMobileTxPackets();
+    }
+
+    @Rpc(description = "Returns a given UID Rx Bytes.")
+    public long getUidRxBytes(int uid) {
+        return TrafficStats.getUidRxBytes(uid);
+    }
+
+    @Rpc(description = "Returns a given UID Rx Packets.")
+    public long getUidRxPackets(int uid) {
+        return TrafficStats.getUidRxPackets(uid);
+    }
+
     @Rpc(description = "Enables or Disables Video Calling()")
     public void telephonyEnableVideoCalling(
             @RpcParameter(name = "enable") boolean enable) {
@@ -1107,8 +1218,7 @@ public class TelephonyManagerFacade extends RpcReceiver {
 
     @Rpc(description = "Returns current signal strength for default subscription ID.")
     public SignalStrength telephonyGetSignalStrength() {
-        return telephonyGetSignalStrengthForSubscription(
-                               SubscriptionManager.DEFAULT_SUBSCRIPTION_ID);
+        return mTelephonyManager.getSignalStrength();
     }
 
     @Rpc(description = "Returns current signal strength for specified subscription ID.")
@@ -1125,6 +1235,46 @@ public class TelephonyManagerFacade extends RpcReceiver {
     @Rpc(description = "Returns the sim count.")
     public int telephonyGetSimCount() {
         return mTelephonyManager.getSimCount();
+    }
+
+    /**
+     * Get the list of Forbidden PLMNs stored on the USIM
+     * profile of the SIM for the default subscription.
+     */
+    @Rpc(description = "Returns a list of forbidden PLMNs")
+    public @Nullable List<String> telephonyGetForbiddenPlmns() {
+        String[] fplmns = mTelephonyManager.getForbiddenPlmns(
+                SubscriptionManager.getDefaultSubscriptionId(),
+                TelephonyManager.APPTYPE_USIM);
+
+        if (fplmns != null) {
+            return Arrays.asList(fplmns);
+        }
+        return null;
+    }
+
+    /**
+    * Read the value of a NV item.
+    * @param itemId Integer the NV item id to be read.
+    * @return the NV item value String.
+    */
+    @Rpc(description = "Returns the NV item as a String")
+    public String telephonyNvReadItem(
+                   @RpcParameter(name = "itemId") Integer itemId) {
+        return mTelephonyManager.nvReadItem(itemId);
+    }
+
+    /**
+    * Write a value to a NV item.
+    * @param itemId Integer the NV item id to be written.
+    * @param itemValue String the NV item value to be written.
+    * @return true or false for successfully or unsuccessfully writing.
+    */
+    @Rpc(description = "Write the NV item by itemId and String value")
+    public Boolean telephonyNvWriteItem(
+                   @RpcParameter(name = "itemId") Integer itemId,
+                   @RpcParameter(name = "itemValue") String itemValue) {
+        return mTelephonyManager.nvWriteItem(itemId, itemValue);
     }
 
     private StateChangeListener getStateChangeListenerForSubscription(

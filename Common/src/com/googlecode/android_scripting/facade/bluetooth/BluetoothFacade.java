@@ -227,6 +227,19 @@ public class BluetoothFacade extends RpcReceiver {
         }
     }
 
+    @Rpc(description = "Fetch UUIDS with SDP")
+    public boolean bluetoothFetchUuidsWithSdp(
+            @RpcParameter(name = "address", description = "Bluetooth Address For Target Device")
+            String address) {
+        try {
+            BluetoothDevice mDevice;
+            mDevice = mBluetoothAdapter.getRemoteDevice(address);
+            return mDevice.fetchUuidsWithSdp();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     @Rpc(description = "Get local Bluetooth device name")
     public String bluetoothGetLocalName() {
         return mBluetoothAdapter.getName();
@@ -339,14 +352,6 @@ public class BluetoothFacade extends RpcReceiver {
         return DiscoveredDevices.values();
     }
 
-    @Rpc(description = "Enable or disable the Bluetooth HCI snoop log")
-    public boolean bluetoothConfigHciSnoopLog(
-            @RpcParameter(name = "value", description = "enable or disable log")
-            Boolean value
-            ) {
-        return mBluetoothAdapter.configHciSnoopLog(value);
-    }
-
     @Rpc(description = "Get Bluetooth controller activity energy info.")
     public String bluetoothGetControllerActivityEnergyInfo(
         @RpcParameter(name = "value")
@@ -364,6 +369,57 @@ public class BluetoothFacade extends RpcReceiver {
             "available for matching beacons.")
     public boolean bluetoothIsHardwareTrackingFiltersAvailable() {
         return mBluetoothAdapter.isHardwareTrackingFiltersAvailable();
+    }
+
+    /**
+     * Return true if LE 2M PHY feature is supported.
+     *
+     * @return true if chipset supports LE 2M PHY feature
+     */
+    @Rpc(description = "Return true if LE 2M PHY feature is supported")
+    public boolean bluetoothIsLe2MPhySupported() {
+        return mBluetoothAdapter.isLe2MPhySupported();
+    }
+
+    /**
+     * Return true if LE Coded PHY feature is supported.
+     *
+     * @return true if chipset supports LE Coded PHY feature
+     */
+    @Rpc(description = "Return true if LE Coded PHY feature is supported")
+    public boolean bluetoothIsLeCodedPhySupported() {
+        return mBluetoothAdapter.isLeCodedPhySupported();
+    }
+
+    /**
+     * Return true if LE Extended Advertising feature is supported.
+     *
+     * @return true if chipset supports LE Extended Advertising feature
+     */
+    @Rpc(description = "Return true if LE Extended Advertising is supported")
+    public boolean bluetoothIsLeExtendedAdvertisingSupported() {
+        return mBluetoothAdapter.isLeExtendedAdvertisingSupported();
+    }
+
+    /**
+     * Return true if LE Periodic Advertising feature is supported.
+     *
+     * @return true if chipset supports LE Periodic Advertising feature
+     */
+    @Rpc(description = "Return true if LE Periodic Advertising is supported")
+    public boolean bluetoothIsLePeriodicAdvertisingSupported() {
+        return mBluetoothAdapter.isLePeriodicAdvertisingSupported();
+    }
+
+    /**
+     * Return the maximum LE advertising data length,
+     * if LE Extended Advertising feature is supported.
+     *
+     * @return the maximum LE advertising data length.
+     */
+    @Rpc(description = "Return the maximum LE advertising data length")
+    public int bluetoothGetLeMaximumAdvertisingDataLength() {
+        return mBluetoothAdapter.getLeMaximumAdvertisingDataLength();
     }
 
     @Rpc(description = "Gets the current state of LE.")

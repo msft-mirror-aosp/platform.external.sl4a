@@ -17,6 +17,8 @@
 package com.googlecode.android_scripting.facade;
 
 import android.app.Service;
+import android.app.usage.NetworkStats.Bucket;
+import android.app.usage.NetworkStatsManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -28,11 +30,15 @@ import android.net.LinkProperties;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
+import android.net.NetworkPolicy;
+import android.net.NetworkPolicyManager;
 import android.net.NetworkRequest;
+import android.net.StringNetworkSpecifier;
 import android.os.Bundle;
+import android.os.RemoteException;
 import android.provider.Settings;
-
 import com.googlecode.android_scripting.Log;
+import com.googlecode.android_scripting.facade.wifi.WifiAwareManagerFacade;
 import com.googlecode.android_scripting.jsonrpc.RpcReceiver;
 import com.googlecode.android_scripting.rpc.Rpc;
 import com.googlecode.android_scripting.rpc.RpcOptional;
@@ -42,13 +48,17 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * Access ConnectivityManager functions.
@@ -57,6 +67,7 @@ public class ConnectivityManagerFacade extends RpcReceiver {
 
     public static int AIRPLANE_MODE_OFF = 0;
     public static int AIRPLANE_MODE_ON = 1;
+    public static int DATA_ROAMING_ON = 1;
 
     class ConnectivityReceiver extends BroadcastReceiver {
 
@@ -185,11 +196,13 @@ public class ConnectivityManagerFacade extends RpcReceiver {
 
         private int mEvents;
         public String mId;
+        private long mCreateTimestamp;
 
         public NetworkCallback(int events) {
             super();
             mEvents = events;
             mId = this.toString();
+            mCreateTimestamp = System.currentTimeMillis();
         }
 
         public void startListeningForEvents(int events) {
@@ -208,7 +221,7 @@ public class ConnectivityManagerFacade extends RpcReceiver {
                         ConnectivityConstants.EventNetworkCallback,
                     new ConnectivityEvents.NetworkCallbackEventBase(
                         mId,
-                        getNetworkCallbackEventString(EVENT_PRECHECK)));
+                        getNetworkCallbackEventString(EVENT_PRECHECK), mCreateTimestamp));
             }
         }
 
@@ -220,7 +233,7 @@ public class ConnectivityManagerFacade extends RpcReceiver {
                         ConnectivityConstants.EventNetworkCallback,
                     new ConnectivityEvents.NetworkCallbackEventBase(
                         mId,
-                        getNetworkCallbackEventString(EVENT_AVAILABLE)));
+                        getNetworkCallbackEventString(EVENT_AVAILABLE), mCreateTimestamp));
             }
         }
 
@@ -232,7 +245,7 @@ public class ConnectivityManagerFacade extends RpcReceiver {
                         ConnectivityConstants.EventNetworkCallback,
                     new ConnectivityEvents.NetworkCallbackEventOnLosing(
                         mId,
-                        getNetworkCallbackEventString(EVENT_LOSING),
+                        getNetworkCallbackEventString(EVENT_LOSING), mCreateTimestamp,
                         maxMsToLive));
             }
         }
@@ -245,7 +258,7 @@ public class ConnectivityManagerFacade extends RpcReceiver {
                         ConnectivityConstants.EventNetworkCallback,
                     new ConnectivityEvents.NetworkCallbackEventBase(
                         mId,
-                        getNetworkCallbackEventString(EVENT_LOST)));
+                        getNetworkCallbackEventString(EVENT_LOST), mCreateTimestamp));
             }
         }
 
@@ -257,7 +270,7 @@ public class ConnectivityManagerFacade extends RpcReceiver {
                         ConnectivityConstants.EventNetworkCallback,
                     new ConnectivityEvents.NetworkCallbackEventBase(
                         mId,
-                        getNetworkCallbackEventString(EVENT_UNAVAILABLE)));
+                        getNetworkCallbackEventString(EVENT_UNAVAILABLE), mCreateTimestamp));
             }
         }
 
@@ -271,7 +284,7 @@ public class ConnectivityManagerFacade extends RpcReceiver {
                         ConnectivityConstants.EventNetworkCallback,
                     new ConnectivityEvents.NetworkCallbackEventOnCapabilitiesChanged(
                         mId,
-                        getNetworkCallbackEventString(EVENT_CAPABILITIES_CHANGED),
+                        getNetworkCallbackEventString(EVENT_CAPABILITIES_CHANGED), mCreateTimestamp,
                         networkCapabilities.getSignalStrength()));
             }
         }
@@ -284,7 +297,7 @@ public class ConnectivityManagerFacade extends RpcReceiver {
                         ConnectivityConstants.EventNetworkCallback,
                     new ConnectivityEvents.NetworkCallbackEventBase(
                         mId,
-                        getNetworkCallbackEventString(EVENT_SUSPENDED)));
+                        getNetworkCallbackEventString(EVENT_SUSPENDED), mCreateTimestamp));
             }
         }
 
@@ -297,6 +310,7 @@ public class ConnectivityManagerFacade extends RpcReceiver {
                         ConnectivityConstants.EventNetworkCallback,
                         new ConnectivityEvents.NetworkCallbackEventOnLinkPropertiesChanged(mId,
                                 getNetworkCallbackEventString(EVENT_LINK_PROPERTIES_CHANGED),
+                                mCreateTimestamp,
                                 linkProperties.getInterfaceName()));
             }
         }
@@ -309,7 +323,7 @@ public class ConnectivityManagerFacade extends RpcReceiver {
                         ConnectivityConstants.EventNetworkCallback,
                     new ConnectivityEvents.NetworkCallbackEventBase(
                         mId,
-                        getNetworkCallbackEventString(EVENT_RESUMED)));
+                        getNetworkCallbackEventString(EVENT_RESUMED), mCreateTimestamp));
             }
         }
     }
@@ -402,6 +416,8 @@ public class ConnectivityManagerFacade extends RpcReceiver {
     }
 
     private final ConnectivityManager mManager;
+    private NetworkPolicyManager mNetPolicyManager;
+    private NetworkStatsManager mNetStatsManager;
     private final Service mService;
     private final Context mContext;
     private final ConnectivityReceiver mConnectivityReceiver;
@@ -419,6 +435,9 @@ public class ConnectivityManagerFacade extends RpcReceiver {
         mService = manager.getService();
         mContext = mService.getBaseContext();
         mManager = (ConnectivityManager) mService.getSystemService(Context.CONNECTIVITY_SERVICE);
+        mNetPolicyManager = NetworkPolicyManager.from(mContext);
+        mNetStatsManager = (NetworkStatsManager)
+              mService.getSystemService(Context.NETWORK_STATS_SERVICE);
         mEventFacade = manager.getReceiver(EventFacade.class);
         mConnectivityReceiver = new ConnectivityReceiver();
         mTrackingConnectivityStateChange = false;
@@ -640,6 +659,26 @@ public class ConnectivityManagerFacade extends RpcReceiver {
         return key;
     }
 
+    @Rpc(description = "Request a Wi-Fi Aware network")
+    public String connectivityRequestWifiAwareNetwork(@RpcParameter(name = "configJson")
+            JSONObject configJson) throws JSONException {
+        NetworkRequest networkRequest = buildNetworkRequestFromJson(configJson);
+        if (networkRequest.networkCapabilities.getNetworkSpecifier() instanceof
+                StringNetworkSpecifier) {
+            String ns =
+                    ((StringNetworkSpecifier) networkRequest.networkCapabilities
+                            .getNetworkSpecifier()).specifier;
+            JSONObject j = new JSONObject(ns);
+            networkRequest.networkCapabilities.setNetworkSpecifier(
+                    WifiAwareManagerFacade.getNetworkSpecifier(j));
+        }
+        mNetworkCallback = new NetworkCallback(NetworkCallback.EVENT_ALL);
+        mManager.requestNetwork(networkRequest, mNetworkCallback);
+        String key = mNetworkCallback.mId;
+        mNetworkCallbackMap.put(key, mNetworkCallback);
+        return key;
+    }
+
     @Rpc(description = "Stop listening for connectivity changes")
     public void connectivityStopTrackingConnectivityStateChange() {
         if (mTrackingConnectivityStateChange) {
@@ -716,6 +755,35 @@ public class ConnectivityManagerFacade extends RpcReceiver {
         mManager.setAirplaneMode(enabled);
     }
 
+    /**
+    * Check global data roaming setting.
+    * @return True if roaming is enabled; false otherwise.
+    */
+    @Rpc(description = "Checks data roaming mode setting.",
+            returns = "True if data roaming mode is enabled.")
+    public Boolean connectivityCheckDataRoamingMode() {
+        try {
+            return Settings.Global.getInt(mService.getContentResolver(),
+                    Settings.Global.DATA_ROAMING) == DATA_ROAMING_ON;
+        } catch (Settings.SettingNotFoundException e) {
+            Log.e("Settings.Global.DATA_ROAMING not found!");
+            return false;
+        }
+    }
+
+    /**
+    * Enable or disable data roaming.
+    * @param roaming 1: Enable data roaming; 0: Disable data roaming.
+    * @return True for setting roaming mode successfully; false otherwise.
+    */
+    @Rpc(description = "Set Data Roaming Enabled or Disabled")
+    public boolean connectivitySetDataRoaming(
+            @RpcParameter(name = "roaming") Integer roaming) {
+        Log.d("connectivitySetDataRoaming by SubscriptionManager");
+        return Settings.Global.putInt(mService.getContentResolver(),
+                    Settings.Global.DATA_ROAMING, roaming);
+    }
+
     @Rpc(description = "Check if tethering supported or not.",
             returns = "True if tethering is supported.")
     public boolean connectivityIsTetheringSupported() {
@@ -736,9 +804,7 @@ public class ConnectivityManagerFacade extends RpcReceiver {
         mManager.stopTethering(type);
     }
 
-    @Rpc(description = "Returns the link local IPv6 address of the interface.")
-    public String connectivityGetLinkLocalIpv6Address(@RpcParameter(name = "ifaceName")
-            String ifaceName) {
+    private Enumeration<InetAddress> getInetAddrsForInterface(String ifaceName) {
         NetworkInterface iface = null;
         try {
             iface = NetworkInterface.getByName(ifaceName);
@@ -746,12 +812,20 @@ public class ConnectivityManagerFacade extends RpcReceiver {
             return null;
         }
 
-        if (iface == null) {
+        if (iface == null)
+            return null;
+        return iface.getInetAddresses();
+    }
+
+    @Rpc(description = "Returns the link local IPv6 address of the interface.")
+    public String connectivityGetLinkLocalIpv6Address(@RpcParameter(name = "ifaceName")
+            String ifaceName) {
+        Inet6Address inet6Address = null;
+        Enumeration<InetAddress> inetAddresses = getInetAddrsForInterface(ifaceName);
+        if (inetAddresses == null) {
             return null;
         }
 
-        Inet6Address inet6Address = null;
-        Enumeration<InetAddress> inetAddresses = iface.getInetAddresses();
         while (inetAddresses.hasMoreElements()) {
             InetAddress addr = inetAddresses.nextElement();
             if (addr instanceof Inet6Address) {
@@ -767,6 +841,103 @@ public class ConnectivityManagerFacade extends RpcReceiver {
         }
 
         return inet6Address.getHostAddress();
+    }
+
+    @Rpc(description = "Return IPv4 address of an interface")
+    public List<String> connectivityGetIPv4Addresses(
+            @RpcParameter(name = "ifaceName") String ifaceName) {
+        Enumeration<InetAddress> inetAddresses
+                = getInetAddrsForInterface(ifaceName);
+        if (inetAddresses == null)
+            return null;
+
+        List<String> inetAddrs = new ArrayList<String>();
+        while (inetAddresses.hasMoreElements()) {
+            InetAddress addr = inetAddresses.nextElement();
+            if (addr instanceof Inet4Address) {
+                Inet4Address inet4Address =  (Inet4Address) addr;
+                inetAddrs.add(inet4Address.getHostAddress());
+            }
+        }
+
+        return inetAddrs;
+    }
+
+    @Rpc(description = "Return IPv6 addrs of an interface except link local")
+    public List<String> connectivityGetIPv6Addresses(
+            @RpcParameter(name = "ifaceName") String ifaceName) {
+        Enumeration<InetAddress> inetAddresses
+                = getInetAddrsForInterface(ifaceName);
+        if (inetAddresses == null)
+            return null;
+
+        List<String> inetAddrs = new ArrayList<String>();
+        while (inetAddresses.hasMoreElements()) {
+            InetAddress addr = inetAddresses.nextElement();
+            if (addr instanceof Inet6Address) {
+                if (((Inet6Address) addr).isLinkLocalAddress())
+                    continue;
+                Inet6Address inet6Address =  (Inet6Address) addr;
+                inetAddrs.add(inet6Address.getHostAddress());
+            }
+        }
+
+        return inetAddrs;
+    }
+
+    @Rpc(description = "Returns active link properties")
+    public LinkProperties connectivityGetActiveLinkProperties() {
+        return mManager.getActiveLinkProperties();
+    }
+
+    @Rpc(description = "Factory reset of network policies")
+    public void connectivityFactoryResetNetworkPolicies(String subscriberId) {
+        mNetPolicyManager.factoryReset(subscriberId);
+    }
+
+    @Rpc(description = "Set data usage limit for subscription ID")
+    public void connectivitySetDataUsageLimit(
+          String subscriberId, String dataLimit) {
+        NetworkPolicy[] allPolicies = mNetPolicyManager.getNetworkPolicies();
+        for(int i=0; i<allPolicies.length; i++) {
+            String subId = allPolicies[i].template.getSubscriberId();
+            if(subId!=null && subId.equals(subscriberId)) {
+                allPolicies[i].limitBytes = Long.valueOf(dataLimit);
+                break;
+            }
+        }
+        mNetPolicyManager.setNetworkPolicies(allPolicies);
+    }
+
+    @Rpc(description = "Get network stats for device")
+    public long connectivityQuerySummaryForDevice(
+          String subscriberId, Long startTime, Long endTime)
+          throws SecurityException, RemoteException {
+        Bucket bucket = mNetStatsManager.querySummaryForDevice(
+              ConnectivityManager.TYPE_MOBILE, subscriberId, startTime, endTime);
+        return bucket.getTxBytes() + bucket.getRxBytes();
+    }
+
+    @Rpc(description = "Get network stats - received bytes for device")
+    public long connectivityGetRxBytesForDevice(
+          String subscriberId, Long startTime, Long endTime)
+          throws SecurityException, RemoteException {
+        Bucket bucket = mNetStatsManager.querySummaryForDevice(
+              ConnectivityManager.TYPE_MOBILE, subscriberId, startTime, endTime);
+        return bucket.getRxBytes();
+    }
+
+    @Rpc(description = "Returns all interfaces on the android deivce")
+    public List<NetworkInterface> connectivityGetNetworkInterfaces() {
+        List<NetworkInterface> interfaces = null;
+        try {
+            interfaces = Collections.list(
+                  NetworkInterface.getNetworkInterfaces());
+        } catch (SocketException e) {
+            return null;
+        };
+
+        return interfaces;
     }
 
     @Override

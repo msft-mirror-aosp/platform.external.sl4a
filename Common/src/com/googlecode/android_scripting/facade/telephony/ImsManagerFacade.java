@@ -20,9 +20,10 @@ import android.app.Service;
 import android.content.Context;
 import android.telephony.SubscriptionManager;
 
+import com.android.ims.ImsConfig;
 import com.android.ims.ImsException;
 import com.android.ims.ImsManager;
-import com.android.ims.ImsConfig;
+
 import com.googlecode.android_scripting.facade.FacadeManager;
 import com.googlecode.android_scripting.jsonrpc.RpcReceiver;
 import com.googlecode.android_scripting.rpc.Rpc;
@@ -45,25 +46,33 @@ public class ImsManagerFacade extends RpcReceiver {
                 SubscriptionManager.getDefaultVoicePhoneId());
     }
 
+    /**
+    * Reset IMS settings to factory default.
+    */
+    @Rpc(description = "Resets ImsManager settings to factory default.")
+    public void imsFactoryReset() {
+        mImsManager.factoryReset();
+    }
+
     @Rpc(description = "Return True if Enhanced 4g Lte mode is enabled by platform.")
     public boolean imsIsEnhanced4gLteModeSettingEnabledByPlatform() {
-        return ImsManager.isVolteEnabledByPlatform(mContext);
+        return mImsManager.isVolteEnabledByPlatform();
     }
 
     @Rpc(description = "Return True if Enhanced 4g Lte mode is enabled by user.")
     public boolean imsIsEnhanced4gLteModeSettingEnabledByUser() {
-        return ImsManager.isEnhanced4gLteModeSettingEnabledByUser(mContext);
+        return mImsManager.isEnhanced4gLteModeSettingEnabledByUser();
     }
 
     @Rpc(description = "Set Enhanced 4G mode.")
     public void imsSetEnhanced4gMode(
             @RpcParameter(name = "enable") Boolean enable) {
-        ImsManager.setEnhanced4gLteModeSetting(mContext, enable);
+        mImsManager.setEnhanced4gLteModeSetting(enable);
     }
 
     @Rpc(description = "Check for VoLTE Provisioning.")
     public boolean imsIsVolteProvisionedOnDevice() {
-        return mImsManager.isVolteProvisionedOnDevice(mContext);
+        return mImsManager.isVolteProvisionedOnDevice();
     }
 
     @Rpc(description = "Set Modem Provisioning for VoLTE")
@@ -88,13 +97,13 @@ public class ImsManagerFacade extends RpcReceiver {
     public void imsSetWfcRoamingSetting(
                         @RpcParameter(name = "enable")
             Boolean enable) {
-        ImsManager.setWfcRoamingSetting(mContext, enable);
+        mImsManager.setWfcRoamingSetting(mContext, enable);
 
     }
 
     @Rpc(description = "Return True if WiFi Calling is enabled during roaming.")
     public boolean imsIsWfcRoamingEnabledByUser() {
-        return ImsManager.isWfcRoamingEnabledByUser(mContext);
+        return mImsManager.isWfcEnabledByPlatform();
     }
 
     @Rpc(description = "Set the Wifi Calling Mode of operation")
@@ -119,42 +128,42 @@ public class ImsManagerFacade extends RpcReceiver {
                         ImsConfig.WfcModeFeatureValueConstants.WIFI_PREFERRED;
                 break;
             case TelephonyConstants.WFC_MODE_DISABLED:
-                if (ImsManager.isWfcEnabledByPlatform(mContext) &&
-                        ImsManager.isWfcEnabledByUser(mContext) == true) {
-                    ImsManager.setWfcSetting(mContext, false);
+                if (mImsManager.isWfcEnabledByPlatform()
+                        && mImsManager.isWfcEnabledByUser()) {
+                    mImsManager.setWfcSetting(false);
                 }
                 return;
             default:
                 throw new IllegalArgumentException("Invalid WfcMode");
         }
 
-        ImsManager.setWfcMode(mContext, mode_val);
-        if (ImsManager.isWfcEnabledByPlatform(mContext) &&
-                ImsManager.isWfcEnabledByUser(mContext) == false) {
-            ImsManager.setWfcSetting(mContext, true);
+        if (mImsManager.isWfcEnabledByPlatform()
+                && !mImsManager.isWfcEnabledByUser()) {
+            mImsManager.setWfcSetting(true);
         }
+        mImsManager.setWfcMode(mode_val);
 
         return;
     }
 
     @Rpc(description = "Return current WFC Mode if Enabled.")
     public String imsGetWfcMode() {
-        if(ImsManager.isWfcEnabledByUser(mContext) == false) {
+        if (!mImsManager.isWfcEnabledByUser()) {
             return TelephonyConstants.WFC_MODE_DISABLED;
         }
         return TelephonyUtils.getWfcModeString(
-            ImsManager.getWfcMode(mContext));
+            mImsManager.getWfcMode());
     }
 
     @Rpc(description = "Return True if WiFi Calling is enabled by user.")
     public boolean imsIsWfcEnabledByUser() {
-        return ImsManager.isWfcEnabledByUser(mContext);
+        return mImsManager.isWfcEnabledByUser();
     }
 
     @Rpc(description = "Set whether or not WFC is enabled")
     public void imsSetWfcSetting(
                         @RpcParameter(name = "enable")  Boolean enable) {
-        ImsManager.setWfcSetting(mContext,enable);
+        mImsManager.setWfcSetting(enable);
     }
 
     /**************************
@@ -163,22 +172,22 @@ public class ImsManagerFacade extends RpcReceiver {
 
     @Rpc(description = "Return True if Video Calling is enabled by the platform.")
     public boolean imsIsVtEnabledByPlatform() {
-        return ImsManager.isVtEnabledByPlatform(mContext);
+        return mImsManager.isVtEnabledByPlatform();
     }
 
     @Rpc(description = "Return True if Video Calling is provisioned for this device.")
     public boolean imsIsVtProvisionedOnDevice() {
-        return ImsManager.isVtProvisionedOnDevice(mContext);
+        return mImsManager.isVtProvisionedOnDevice();
     }
 
     @Rpc(description = "Set Video Telephony Enabled")
     public void imsSetVtSetting(Boolean enabled) {
-        ImsManager.setVtSetting(mContext, enabled);
+        mImsManager.setVtSetting(enabled);
     }
 
     @Rpc(description = "Return user enabled status for Video Telephony")
     public boolean imsIsVtEnabledByUser() {
-        return ImsManager.isVtEnabledByUser(mContext);
+        return mImsManager.isVtEnabledByUser();
     }
 
     @Override
