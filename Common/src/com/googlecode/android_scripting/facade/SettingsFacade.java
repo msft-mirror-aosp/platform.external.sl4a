@@ -36,6 +36,7 @@ import com.googlecode.android_scripting.Log;
 import com.googlecode.android_scripting.future.FutureActivityTask;
 import com.googlecode.android_scripting.jsonrpc.RpcReceiver;
 import com.googlecode.android_scripting.rpc.Rpc;
+import com.googlecode.android_scripting.rpc.RpcDefault;
 import com.googlecode.android_scripting.rpc.RpcOptional;
 import com.googlecode.android_scripting.rpc.RpcParameter;
 
@@ -55,7 +56,7 @@ public class SettingsFacade extends RpcReceiver {
     /**
      * Creates a new SettingsFacade.
      *
-     * @param service is the {@link Context} the APIs will run under
+     * @param manager is the {@link Context} the APIs will run under
      */
     public SettingsFacade(FacadeManager manager) {
         super(manager);
@@ -244,11 +245,15 @@ public class SettingsFacade extends RpcReceiver {
     }
 
     @Rpc(description = "Set a string password to the device.")
-    public void setDevicePassword(@RpcParameter(name = "password") String password) {
+    public void setDevicePassword(@RpcParameter(name = "password") String password,
+                                  @RpcParameter(name = "previousPassword")
+                                  @RpcDefault("")
+                                  @RpcOptional
+                                  String previousPassword) {
         // mLockPatternUtils.setLockPatternEnabled(true, UserHandle.myUserId());
         mLockPatternUtils.setLockScreenDisabled(false, UserHandle.myUserId());
         mLockPatternUtils.setCredentialRequiredToDecrypt(true);
-        mLockPatternUtils.saveLockPassword(password, null,
+        mLockPatternUtils.saveLockPassword(password, previousPassword,
                 DevicePolicyManager.PASSWORD_QUALITY_NUMERIC, UserHandle.myUserId());
     }
 
@@ -256,13 +261,12 @@ public class SettingsFacade extends RpcReceiver {
             "screen lock while the screen is locked will still require the screen to be " +
             "unlocked via pressing the back button and swiping up. To get around this, make sure " +
             "the screen is on/unlocked when calling this method.")
-    public void disableDevicePassword() {
-        mLockPatternUtils.clearEncryptionPassword();
-        // mLockPatternUtils.setLockPatternEnabled(false, UserHandle.myUserId());
-        mLockPatternUtils.setLockScreenDisabled(true, UserHandle.myUserId());
-        mLockPatternUtils.setCredentialRequiredToDecrypt(false);
-        mLockPatternUtils.clearEncryptionPassword();
-        mLockPatternUtils.clearLock(null, UserHandle.myUserId());
+    public void disableDevicePassword(
+            @RpcParameter(name = "currentPassword",
+                          description = "The current password used to lock the device")
+            @RpcDefault("1111")
+            @RpcOptional String currentPassword) {
+        mLockPatternUtils.clearLock(currentPassword, UserHandle.myUserId());
         mLockPatternUtils.setLockScreenDisabled(true, UserHandle.myUserId());
     }
 
@@ -288,6 +292,32 @@ public class SettingsFacade extends RpcReceiver {
         } catch (Exception e){
             Log.d("showHomeScreen exception" + e);
         }
+    }
+
+    @Rpc(description = "Set private DNS mode")
+    public void setPrivateDnsMode(@RpcParameter(name = "useTls") Boolean useTls,
+            @RpcParameter(name = "hostname") @RpcOptional String hostname) {
+        String dnsMode = ConnectivityConstants.PrivateDnsModeOpportunistic;
+        if(useTls == false) dnsMode = ConnectivityConstants.PrivateDnsModeOff;
+        if(hostname != null) dnsMode = ConnectivityConstants.PrivateDnsModeStrict;
+        android.provider.Settings.Global.putString(mService.getContentResolver(),
+                android.provider.Settings.Global.PRIVATE_DNS_MODE, dnsMode);
+        if(hostname != null)
+            android.provider.Settings.Global.putString(mService.getContentResolver(),
+                    android.provider.Settings.Global.PRIVATE_DNS_SPECIFIER, hostname);
+    }
+
+    @Rpc(description = "Get private DNS mode", returns = "Private DNS mode setting")
+    public String getPrivateDnsMode() {
+        return android.provider.Settings.Global.getString(mService.getContentResolver(),
+                android.provider.Settings.Global.PRIVATE_DNS_MODE);
+    }
+
+    @Rpc(description = "Get private DNS specifier", returns = "DNS hostname set in strict mode")
+    public String getPrivateDnsSpecifier() {
+        if(!getPrivateDnsMode().equals(ConnectivityConstants.PrivateDnsModeStrict)) return null;
+        return android.provider.Settings.Global.getString(mService.getContentResolver(),
+                android.provider.Settings.Global.PRIVATE_DNS_SPECIFIER);
     }
 
     @Override
