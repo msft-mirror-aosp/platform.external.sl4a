@@ -120,6 +120,7 @@
     <uses-permission android:name="android.permission.READ_PRIVILEGED_PHONE_STATE" />
     <uses-permission android:name="android.permission.MEDIA_CONTENT_CONTROL" />
     <uses-permission android:name="android.permission.RECEIVE_EMERGENCY_BROADCAST"/>
+    <uses-permission android:name="android.permission.NETWORK_STACK"/>
     <application
         android:icon="@drawable/sl4a_logo_48"
         android:label="@string/application_title"
@@ -226,7 +227,7 @@
                   android:grantUriPermissions="true"
                   android:exported="true" />
         <provider
-            android:name="android.support.v4.content.FileProvider"
+            android:name="androidx.core.content.FileProvider"
             android:authorities="com.googlecode.android_scripting.provider.telephonytestprovider"
             android:grantUriPermissions="true"
             android:exported="false">
