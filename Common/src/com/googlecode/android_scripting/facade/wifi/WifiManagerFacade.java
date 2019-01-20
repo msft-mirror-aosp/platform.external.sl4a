@@ -1158,9 +1158,9 @@ public class WifiManagerFacade extends RpcReceiver {
     /**
      * @return true if this device supports Wi-Fi Device Provisioning Protocol (Easy-connect)
      */
-    @Rpc(description = "Check if Device Provisioning Protocol is supported on this device.")
-    public Boolean wifiIsDppSupported() {
-        return mWifi.isDppSupported();
+    @Rpc(description = "Check if Easy Connect (DPP) is supported on this device.")
+    public Boolean wifiIsEasyConnectSupported() {
+        return mWifi.isEasyConnectSupported();
     }
 
     @Rpc(description = "Acquires a full Wifi lock.")
@@ -1555,8 +1555,7 @@ public class WifiManagerFacade extends RpcReceiver {
 
         // Start Easy Connect
         mWifi.startEasyConnectAsConfiguratorInitiator(enrolleeUri, selectedNetworkId,
-                netRoleInternal, new Handler(mCallbackHandlerThread.getLooper()),
-                dppStatusCallback);
+                netRoleInternal, mService.getMainExecutor(), dppStatusCallback);
     }
 
     /**
@@ -1570,8 +1569,8 @@ public class WifiManagerFacade extends RpcReceiver {
         EasyConnectCallback dppStatusCallback = new EasyConnectCallback();
 
         // Start Easy Connect
-        mWifi.startEasyConnectAsEnrolleeInitiator(configuratorUri,
-                new Handler(mCallbackHandlerThread.getLooper()), dppStatusCallback);
+        mWifi.startEasyConnectAsEnrolleeInitiator(configuratorUri, mService.getMainExecutor(),
+                dppStatusCallback);
     }
 
     /**
