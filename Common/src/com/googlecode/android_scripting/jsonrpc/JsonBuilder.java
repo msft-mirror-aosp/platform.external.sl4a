@@ -19,6 +19,7 @@ package com.googlecode.android_scripting.jsonrpc;
 import static com.googlecode.android_scripting.ConvertUtils.toNonNullString;
 
 import android.annotation.NonNull;
+import android.bluetooth.BluetoothCodecConfig;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
@@ -29,6 +30,7 @@ import android.content.Intent;
 import android.graphics.Point;
 import android.location.Address;
 import android.location.Location;
+import android.media.session.PlaybackState;
 import android.net.DhcpInfo;
 import android.net.IpPrefix;
 import android.net.LinkAddress;
@@ -210,6 +212,12 @@ public class JsonBuilder {
         }
         if (data instanceof BluetoothDevice) {
             return buildJsonBluetoothDevice((BluetoothDevice) data);
+        }
+        if (data instanceof BluetoothCodecConfig) {
+            return buildJsonBluetoothCodecConfig((BluetoothCodecConfig) data);
+        }
+        if (data instanceof PlaybackState) {
+            return buildJsonPlaybackState((PlaybackState) data);
         }
         if (data instanceof CellLocation) {
             return buildJsonCellLocation((CellLocation) data);
@@ -462,6 +470,17 @@ public class JsonBuilder {
         return result;
     }
 
+    private static JSONObject buildJsonBluetoothCodecConfig(BluetoothCodecConfig codecConfig)
+            throws JSONException {
+        JSONObject result = new JSONObject();
+        result.put("codecType", codecConfig.getCodecType());
+        result.put("sampleRate", codecConfig.getSampleRate());
+        result.put("bitsPerSample", codecConfig.getBitsPerSample());
+        result.put("channelMode", codecConfig.getChannelMode());
+        result.put("codecSpecific1", codecConfig.getCodecSpecific1());
+        return result;
+    }
+
     private static JSONObject buildJsonBluetoothDevice(BluetoothDevice data)
             throws JSONException {
         JSONObject deviceInfo = new JSONObject();
@@ -598,6 +617,16 @@ public class JsonBuilder {
             }
             result.put(key, build(entry.getValue()));
         }
+        return result;
+    }
+
+    private static JSONObject buildJsonPlaybackState(PlaybackState playbackState)
+            throws JSONException {
+        JSONObject result = new JSONObject();
+        result.put("state", playbackState.getState());
+        result.put("position", playbackState.getPosition());
+        result.put("speed", playbackState.getPlaybackSpeed());
+        result.put("actions", playbackState.getActions());
         return result;
     }
 

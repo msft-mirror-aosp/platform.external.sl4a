@@ -44,6 +44,8 @@ public class BluetoothA2dpFacade extends RpcReceiver {
     static final ParcelUuid[] SINK_UUIDS = {
         BluetoothUuid.AudioSink, BluetoothUuid.AdvAudioDist,
     };
+    private BluetoothCodecConfig mBluetoothCodecConfig;
+
     private final Service mService;
     private final EventFacade mEventFacade;
     private final BroadcastReceiver mBluetoothA2dpReceiver;
@@ -51,7 +53,6 @@ public class BluetoothA2dpFacade extends RpcReceiver {
 
     private static boolean sIsA2dpReady = false;
     private static BluetoothA2dp sA2dpProfile = null;
-    private BluetoothCodecConfig mBluetoothCodecConfig;
 
     public BluetoothA2dpFacade(FacadeManager manager) {
         super(manager);
@@ -233,8 +234,7 @@ public class BluetoothA2dpFacade extends RpcReceiver {
         return target.getCodecType() == capability.getCodecType()
                 && (target.getSampleRate() & capability.getSampleRate()) != 0
                 && (target.getBitsPerSample() & capability.getBitsPerSample()) != 0
-                && (target.getChannelMode() & capability.getChannelMode()) != 0
-                && target.getCodecSpecific1() == capability.getCodecSpecific1();
+                && (target.getChannelMode() & capability.getChannelMode()) != 0;
     }
 
     /**
@@ -252,9 +252,10 @@ public class BluetoothA2dpFacade extends RpcReceiver {
             @RpcParameter(name = "sampleRate") Integer sampleRate,
             @RpcParameter(name = "bitsPerSample") Integer bitsPerSample,
             @RpcParameter(name = "channelMode") Integer channelMode,
-            @RpcParameter(name = "codecSpecific1") Long codecSpecific1) {
-        if (sA2dpProfile == null) {
-            return false;
+            @RpcParameter(name = "codecSpecific1") Long codecSpecific1)
+            throws Exception {
+        while (!sIsA2dpReady) {
+            continue;
         }
         BluetoothCodecConfig codecConfig = new BluetoothCodecConfig(
                 codecType,
@@ -264,10 +265,16 @@ public class BluetoothA2dpFacade extends RpcReceiver {
                 channelMode,
                 codecSpecific1,
                 0L, 0L, 0L);
-        BluetoothCodecStatus currentCodecStatus = sA2dpProfile.getCodecStatus(
-                sA2dpProfile.getActiveDevice());
-        if (isSelectableCodec(codecConfig, currentCodecStatus.getCodecConfig())) {
-            Log.e("Same as current codec configuration " + currentCodecStatus.getCodecConfig());
+        BluetoothDevice activeDevice = sA2dpProfile.getActiveDevice();
+        if (activeDevice == null) {
+            Log.e("No active device");
+            throw new Exception("No active device");
+        }
+        BluetoothCodecStatus currentCodecStatus = sA2dpProfile.getCodecStatus(activeDevice);
+        BluetoothCodecConfig currentCodecConfig = currentCodecStatus.getCodecConfig();
+        if (isSelectableCodec(codecConfig, currentCodecConfig)
+                && codecConfig.getCodecSpecific1() == currentCodecConfig.getCodecSpecific1()) {
+            Log.e("Same as current codec configuration " + currentCodecConfig);
             return false;
         }
         for (BluetoothCodecConfig selectable :
@@ -279,6 +286,23 @@ public class BluetoothA2dpFacade extends RpcReceiver {
             }
         }
         return false;
+    }
+
+    /**
+     * Get current active device codec config
+     *
+     * @return Current active device codec config,
+     */
+    @Rpc(description = "Get current codec config.")
+    public BluetoothCodecConfig bluetoothA2dpGetCurrentCodecConfig() throws Exception {
+        while (!sIsA2dpReady) {
+            continue;
+        }
+        if (sA2dpProfile.getActiveDevice() == null) {
+            Log.e("No active device.");
+            throw new Exception("No active device");
+        }
+        return sA2dpProfile.getCodecStatus(sA2dpProfile.getActiveDevice()).getCodecConfig();
     }
 
     @Override
