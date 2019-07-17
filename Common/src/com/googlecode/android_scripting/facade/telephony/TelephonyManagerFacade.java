@@ -35,6 +35,7 @@ import android.telephony.ServiceState;
 import android.telephony.SignalStrength;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
+import android.telephony.AvailableNetworkInfo;
 
 import com.android.internal.telephony.RILConstants;
 import com.android.internal.telephony.TelephonyProperties;
@@ -46,6 +47,8 @@ import com.googlecode.android_scripting.facade.EventFacade;
 import com.googlecode.android_scripting.facade.FacadeManager;
 import com.googlecode.android_scripting.facade.telephony.TelephonyStateListeners
                                                    .CallStateChangeListener;
+import com.googlecode.android_scripting.facade.telephony.TelephonyStateListeners
+                                                   .ActiveDataSubIdChangeListener;
 import com.googlecode.android_scripting.facade.telephony.TelephonyStateListeners
                                                    .CellInfoChangeListener;
 import com.googlecode.android_scripting.facade.telephony.TelephonyStateListeners
@@ -65,6 +68,7 @@ import com.googlecode.android_scripting.rpc.RpcOptional;
 import com.googlecode.android_scripting.rpc.RpcParameter;
 
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -80,6 +84,7 @@ public class TelephonyManagerFacade extends RpcReceiver {
     private final EventFacade mEventFacade;
     private final TelephonyManager mTelephonyManager;
     private final SubscriptionManager mSubscriptionManager;
+    private List<AvailableNetworkInfo> availableNetworkList;
     private HashMap<Integer, StateChangeListener> mStateChangeListeners =
                              new HashMap<Integer, StateChangeListener>();
 
@@ -264,6 +269,28 @@ public class TelephonyManagerFacade extends RpcReceiver {
         return true;
     }
 
+    @Rpc(description = "Starts tracking active opportunistic data change" +
+                       "for default subscription ID.")
+    public Boolean telephonyStartTrackingActiveDataChange() {
+        return telephonyStartTrackingActiveDataChangeForSubscription(
+                              SubscriptionManager.DEFAULT_SUBSCRIPTION_ID);
+    }
+
+    @Rpc(description = "Starts tracking active opportunistic data change" +
+                       "for specified subscription ID.")
+    public Boolean telephonyStartTrackingActiveDataChangeForSubscription(
+                @RpcParameter(name = "subId") Integer subId) {
+        StateChangeListener listener = getStateChangeListenerForSubscription(subId, true);
+        if(listener == null) {
+            Log.e("Invalid subscription ID");
+            return false;
+        }
+        mTelephonyManager.createForSubscriptionId(subId).listen(
+            listener.mActiveDataSubIdChangeListener,
+            PhoneStateListener.LISTEN_ACTIVE_DATA_SUBSCRIPTION_ID_CHANGE);
+        return true;
+    }
+
     @Rpc(description = "Turn on/off precise listening on fore/background or" +
                        " ringing calls for default voice subscription ID.")
     public Boolean telephonyAdjustPreciseCallStateListenLevel(
@@ -319,6 +346,29 @@ public class TelephonyManagerFacade extends RpcReceiver {
             PhoneStateListener.LISTEN_NONE);
         return true;
     }
+
+    @Rpc(description = "Stops tracking active opportunistic data " +
+            "for default subscription ID.")
+    public Boolean telephonyStopTrackingActiveDataChange() {
+        return telephonyStopTrackingActiveDataChangeForSubscription(
+                SubscriptionManager.DEFAULT_SUBSCRIPTION_ID);
+    }
+
+    @Rpc(description = "Stops tracking active opportunistic data " +
+                       "for specified subscription ID.")
+    public Boolean telephonyStopTrackingActiveDataChangeForSubscription(
+                   @RpcParameter(name = "subId") Integer subId) {
+        StateChangeListener listener = getStateChangeListenerForSubscription(subId, false);
+        if(listener == null) {
+            Log.e("Invalid subscription ID");
+            return false;
+        }
+        mTelephonyManager.createForSubscriptionId(subId).listen(
+            listener.mActiveDataSubIdChangeListener,
+            PhoneStateListener.LISTEN_NONE);
+        return true;
+    }
+
     @Rpc(description = "Stops tracking call state change " +
             "for default voice subscription ID.")
     public Boolean telephonyStopTrackingCallStateChange() {
@@ -688,6 +738,37 @@ public class TelephonyManagerFacade extends RpcReceiver {
     public String telephonyGetPhoneType() {
         return TelephonyUtils.getPhoneTypeString(
             mTelephonyManager.getPhoneType());
+    }
+
+    @Rpc(description = "Returns preferred opportunistic data subscription Id")
+    public Integer telephonyGetPreferredOpportunisticDataSubscription() {
+        return mTelephonyManager.getPreferredOpportunisticDataSubscription();
+    }
+
+    @Rpc(description = "Sets preferred opportunistic data subscription Id")
+    public void telephonySetPreferredOpportunisticDataSubscription(
+            @RpcParameter(name = "subId") Integer subId,
+            @RpcParameter(name = "needValidation") Boolean needValidation) {
+        mTelephonyManager.setPreferredOpportunisticDataSubscription(
+                   subId, needValidation, null, null);
+    }
+
+    @Rpc(description = "Updates Available Networks")
+    public void telephonyUpdateAvailableNetworks(
+            @RpcParameter(name = "subId") Integer subId) {
+
+        availableNetworkList = new ArrayList<>();
+        List<String> mccmmc = new ArrayList<String>();
+        List<Integer> bands = new ArrayList<Integer>();
+
+        availableNetworkList.add(
+            new AvailableNetworkInfo(
+                subId,
+                AvailableNetworkInfo.PRIORITY_HIGH,
+                mccmmc,
+                bands));
+
+        mTelephonyManager.updateAvailableNetworks(availableNetworkList, null, null);
     }
 
     /**
@@ -1392,6 +1473,7 @@ public class TelephonyManagerFacade extends RpcReceiver {
         public CallStateChangeListener mCallStateChangeListener;
         public CellInfoChangeListener mCellInfoChangeListener;
         public DataConnectionStateChangeListener mDataConnectionStateChangeListener;
+        public ActiveDataSubIdChangeListener mActiveDataSubIdChangeListener;
         public DataConnectionRealTimeInfoChangeListener mDataConnectionRTInfoChangeListener;
         public VoiceMailStateChangeListener mVoiceMailStateChangeListener;
 
@@ -1402,6 +1484,9 @@ public class TelephonyManagerFacade extends RpcReceiver {
                 new SignalStrengthChangeListener(mEventFacade, subId, mService.getMainLooper());
             mDataConnectionStateChangeListener =
                 new DataConnectionStateChangeListener(
+                        mEventFacade, mTelephonyManager, subId, mService.getMainLooper());
+            mActiveDataSubIdChangeListener =
+                new ActiveDataSubIdChangeListener(
                         mEventFacade, mTelephonyManager, subId, mService.getMainLooper());
             mCallStateChangeListener =
                 new CallStateChangeListener(mEventFacade, subId, mService.getMainLooper());
@@ -1423,6 +1508,9 @@ public class TelephonyManagerFacade extends RpcReceiver {
                     PhoneStateListener.LISTEN_NONE);
             mTelephonyManager.listen(
                     mCallStateChangeListener,
+                    PhoneStateListener.LISTEN_NONE);
+            mTelephonyManager.listen(
+                    mActiveDataSubIdChangeListener,
                     PhoneStateListener.LISTEN_NONE);
             mTelephonyManager.listen(
                     mCellInfoChangeListener,
