@@ -58,6 +58,7 @@ import android.net.wifi.hotspot2.PasspointConfiguration;
 import android.net.wifi.hotspot2.ProvisioningCallback;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.HandlerExecutor;
 import android.os.HandlerThread;
 import android.os.PatternMatcher;
 import android.provider.Settings.Global;
@@ -1080,7 +1081,7 @@ public class WifiManagerFacade extends RpcReceiver {
                 osuServiceDescription = config.getString("description");
             }
             Map<String, String> osuFriendlyNames = new HashMap<>();
-            osuFriendlyNames.put("en", osuFriendlyName);
+            osuFriendlyNames.put("eng", osuFriendlyName);
             return new OsuProvider(osuSsid, osuFriendlyNames, osuServiceDescription,
                     osuServerUri, null, osuMethodList, null);
         } catch (JSONException e) {
@@ -1402,7 +1403,7 @@ public class WifiManagerFacade extends RpcReceiver {
         SoftApCallbackImp softApCallback = new SoftApCallbackImp(mEventFacade);
         mSoftapCallbacks.put(softApCallback.mId, softApCallback);
         mWifi.registerSoftApCallback(softApCallback,
-                new Handler(mCallbackHandlerThread.getLooper()));
+                new HandlerExecutor(new Handler(mCallbackHandlerThread.getLooper())));
         return softApCallback.mId;
     }
 
