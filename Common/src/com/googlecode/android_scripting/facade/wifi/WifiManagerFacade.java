@@ -37,6 +37,7 @@ import android.net.Uri;
 import android.net.wifi.EasyConnectStatusCallback;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiActivityEnergyInfo;
+import android.net.wifi.WifiClient;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiConfiguration.AuthAlgorithm;
 import android.net.wifi.WifiConfiguration.KeyMgmt;
@@ -56,6 +57,7 @@ import android.net.wifi.hotspot2.PasspointConfiguration;
 import android.net.wifi.hotspot2.ProvisioningCallback;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.HandlerExecutor;
 import android.os.HandlerThread;
 import android.os.PatternMatcher;
 import android.provider.Settings.Global;
@@ -242,9 +244,9 @@ public class WifiManagerFacade extends RpcReceiver {
         }
 
         @Override
-        public void onNumClientsChanged(int numClients) {
+        public void onConnectedClientsChanged(List<WifiClient> clients) {
             Bundle msg = new Bundle();
-            msg.putInt("NumClients", numClients);
+            msg.putInt("NumClients", clients.size());
             mEventFacade.postEvent(mEventStr + "OnNumClientsChanged", msg);
         }
     };
@@ -1360,8 +1362,9 @@ public class WifiManagerFacade extends RpcReceiver {
     public Integer registerSoftApCallback() {
         SoftApCallbackImp softApCallback = new SoftApCallbackImp(mEventFacade);
         mSoftapCallbacks.put(softApCallback.mId, softApCallback);
-        mWifi.registerSoftApCallback(softApCallback,
-                new Handler(mCallbackHandlerThread.getLooper()));
+        mWifi.registerSoftApCallback(
+                new HandlerExecutor(new Handler(mCallbackHandlerThread.getLooper())),
+                softApCallback);
         return softApCallback.mId;
     }
 
