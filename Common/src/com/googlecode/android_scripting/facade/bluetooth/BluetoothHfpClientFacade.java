@@ -35,7 +35,7 @@ import java.util.List;
 
 public class BluetoothHfpClientFacade extends RpcReceiver {
     static final ParcelUuid[] UUIDS = {
-        BluetoothUuid.Handsfree_AG,
+        BluetoothUuid.HFP_AG,
     };
 
     private final Service mService;
@@ -111,7 +111,7 @@ public class BluetoothHfpClientFacade extends RpcReceiver {
         BluetoothDevice device =
                 BluetoothFacade.getDevice(mBluetoothAdapter.getBondedDevices(),
                     deviceStr);
-        Log.d("Changing priority of device " + device.getAliasName()
+        Log.d("Changing priority of device " + device.getAlias()
                 + " p: " + priority);
         sHfpClientProfile.setPriority(device, priority);
     }
@@ -147,7 +147,7 @@ public class BluetoothHfpClientFacade extends RpcReceiver {
         try {
             BluetoothDevice device = BluetoothFacade.getDevice(
                     BluetoothFacade.DiscoveredDevices, deviceStr);
-            Log.d("Connecting to device " + device.getAliasName());
+            Log.d("Connecting to device " + device.getAlias());
             return hfpClientConnect(device);
         } catch (Exception e) {
             Log.e("bluetoothHfpClientConnect failed on getDevice "
