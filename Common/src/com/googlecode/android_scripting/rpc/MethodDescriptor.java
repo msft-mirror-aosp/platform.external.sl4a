@@ -550,7 +550,10 @@ public final class MethodDescriptor {
         return false;
     }
 
-    /** Returns the converters for {@code String}, {@code Integer} and {@code Boolean}. */
+    /**
+     * Returns the converters for {@code String}, {@code Integer}, {@code Long},
+     * and {@code Boolean}.
+     */
     private static Map<Class<?>, Converter<?>> populateConverters() {
         Map<Class<?>, Converter<?>> converters = new HashMap<Class<?>, Converter<?>>();
         converters.put(String.class, new Converter<String>() {
@@ -566,6 +569,16 @@ public final class MethodDescriptor {
                     return Integer.decode(input);
                 } catch (NumberFormatException e) {
                     throw new IllegalArgumentException("'" + input + "' is not an integer");
+                }
+            }
+        });
+        converters.put(Long.class, new Converter<Long>() {
+            @Override
+            public Long convert(String input) {
+                try {
+                    return Long.decode(input);
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException("'" + input + "' is not a long");
                 }
             }
         });
