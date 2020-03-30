@@ -997,6 +997,7 @@ public class JsonBuilder {
         msg.put("mcc", data.getMcc());
         msg.put("mnc", data.getMnc());
         msg.put("carrierId", data.getCarrierId());
+        msg.put("isOpportunistic", data.isOpportunistic());
         return msg;
     }
 
