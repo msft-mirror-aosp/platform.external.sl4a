@@ -25,6 +25,8 @@ cc_library_shared {
         "-Wno-unused-parameter",
     ],
 
+    header_libs: ["jni_headers"],
+
     shared_libs: ["liblog"],
 
     sdk_version: "23",
