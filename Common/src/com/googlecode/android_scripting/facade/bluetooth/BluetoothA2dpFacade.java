@@ -51,7 +51,7 @@ public class BluetoothA2dpFacade extends RpcReceiver {
     private final BroadcastReceiver mBluetoothA2dpReceiver;
     private final BluetoothAdapter mBluetoothAdapter;
 
-    private static volatile boolean sIsA2dpReady = false;
+    private static boolean sIsA2dpReady = false;
     private static BluetoothA2dp sA2dpProfile = null;
 
     public BluetoothA2dpFacade(FacadeManager manager) {
@@ -161,7 +161,7 @@ public class BluetoothA2dpFacade extends RpcReceiver {
         if (sA2dpProfile == null) return;
         BluetoothDevice device =
                 BluetoothFacade.getDevice(mBluetoothAdapter.getBondedDevices(), deviceStr);
-        Log.d("Changing priority of device " + device.getAlias() + " p: " + priority);
+        Log.d("Changing priority of device " + device.getAliasName() + " p: " + priority);
         sA2dpProfile.setPriority(device, priority);
     }
 
@@ -185,7 +185,7 @@ public class BluetoothA2dpFacade extends RpcReceiver {
         BluetoothDevice mDevice =
                 BluetoothFacade.getDevice(
                         mBluetoothAdapter.getBondedDevices(), deviceID);
-        Log.d("Connecting to device " + mDevice.getAlias());
+        Log.d("Connecting to device " + mDevice.getAliasName());
         return a2dpConnect(mDevice);
     }
 

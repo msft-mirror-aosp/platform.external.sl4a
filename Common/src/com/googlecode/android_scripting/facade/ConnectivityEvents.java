@@ -33,31 +33,31 @@ import org.json.JSONObject;
  */
 public class ConnectivityEvents {
     /**
-     * Translates a socket keep-alive event to JSON.
+     * Translates a packet keep-alive event to JSON.
      */
-    public static class SocketKeepaliveEvent implements JsonSerializable {
+    public static class PacketKeepaliveEvent implements JsonSerializable {
         private String mId;
-        private String mSocketKeepaliveEvent;
+        private String mPacketKeepaliveEvent;
 
-        public SocketKeepaliveEvent(String id, String event) {
+        public PacketKeepaliveEvent(String id, String event) {
             mId = id;
-            mSocketKeepaliveEvent = event;
+            mPacketKeepaliveEvent = event;
         }
 
         /**
          * Create a JSON data-structure.
          */
         public JSONObject toJSON() throws JSONException {
-            JSONObject socketKeepalive = new JSONObject();
+            JSONObject packetKeepalive = new JSONObject();
 
-            socketKeepalive.put(
-                    ConnectivityConstants.SocketKeepaliveContainer.ID,
+            packetKeepalive.put(
+                    ConnectivityConstants.PacketKeepaliveContainer.ID,
                     mId);
-            socketKeepalive.put(
-                    ConnectivityConstants.SocketKeepaliveContainer.SOCKET_KEEPALIVE_EVENT,
-                    mSocketKeepaliveEvent);
+            packetKeepalive.put(
+                    ConnectivityConstants.PacketKeepaliveContainer.PACKET_KEEPALIVE_EVENT,
+                    mPacketKeepaliveEvent);
 
-            return socketKeepalive;
+            return packetKeepalive;
         }
     }
 

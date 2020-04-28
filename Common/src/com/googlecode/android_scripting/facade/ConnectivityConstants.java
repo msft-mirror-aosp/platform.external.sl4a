@@ -45,16 +45,24 @@ public class ConnectivityConstants {
     public static final String EventConnectivityChanged = "ConnectivityChanged";
 
     /**
-     * Socket keep-alive event
+     * Packet keep-alive event
      */
-    public static final String EventSocketKeepaliveCallback = "SocketKeepaliveCallback";
+    public static final String EventPacketKeepaliveCallback = "PacketKeepaliveCallback";
 
     /**
-     * Constants for SocketKeepaliveEvent.
+     * Packet keep-alive - sub-names
      */
-    public static class SocketKeepaliveContainer {
+    public static final String PacketKeepaliveCallbackStarted = "Started";
+    public static final String PacketKeepaliveCallbackStopped = "Stopped";
+    public static final String PacketKeepaliveCallbackError = "Error";
+    public static final String PacketKeepaliveCallbackInvalid = "Invalid";
+
+    /**
+     * Constants for PacketKeepaliveEvent.
+     */
+    public static class PacketKeepaliveContainer {
         public static final String ID = "id";
-        public static final String SOCKET_KEEPALIVE_EVENT = "socketKeepaliveEvent";
+        public static final String PACKET_KEEPALIVE_EVENT = "packetKeepaliveEvent";
     }
 
     /**

@@ -191,7 +191,7 @@ public class BluetoothConnectionFacade extends RpcReceiver {
             if (action.equals(BluetoothDevice.ACTION_FOUND)) {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 if (BluetoothFacade.deviceMatch(device, mDeviceID)) {
-                    Log.d("Found device " + device.getAlias() + " for connection.");
+                    Log.d("Found device " + device.getAliasName() + " for connection.");
                     mBluetoothAdapter.cancelDiscovery();
                     mDevice = device;
                 }
@@ -240,7 +240,7 @@ public class BluetoothConnectionFacade extends RpcReceiver {
             if (action.equals(BluetoothDevice.ACTION_FOUND)) {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 if (BluetoothFacade.deviceMatch(device, mDeviceID)) {
-                    Log.d("Found device " + device.getAlias() + " for connection.");
+                    Log.d("Found device " + device.getAliasName() + " for connection.");
                     mBluetoothAdapter.cancelDiscovery();
                     mDevice = device;
                 }
@@ -253,12 +253,12 @@ public class BluetoothConnectionFacade extends RpcReceiver {
                 }
                 // Attempt to initiate bonding.
                 if (!started) {
-                    Log.d("Bond with " + mDevice.getAlias());
+                    Log.d("Bond with " + mDevice.getAliasName());
                     if (mDevice.createBond()) {
                         started = true;
                         Log.d("Bonding started.");
                     } else {
-                        Log.e("Failed to bond with " + mDevice.getAlias());
+                        Log.e("Failed to bond with " + mDevice.getAliasName());
                         mEventFacade.postEvent("Bond", mBadNews);
                         mService.unregisterReceiver(listeningDevices.remove("Bond" + mDeviceID));
                     }
@@ -406,7 +406,7 @@ public class BluetoothConnectionFacade extends RpcReceiver {
         if (deviceUuids == null) {
             mEventFacade.postEvent("BluetoothProfileConnectionEvent", mBadNews);
         }
-        Log.d("Connecting to " + device.getAlias());
+        Log.d("Connecting to " + device.getAliasName());
         if (BluetoothUuid.containsAnyUuid(BluetoothA2dpFacade.SINK_UUIDS, deviceUuids)) {
             mA2dpProfile.a2dpConnect(device);
         }

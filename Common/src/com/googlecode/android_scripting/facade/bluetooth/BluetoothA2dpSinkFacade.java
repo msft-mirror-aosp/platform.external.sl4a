@@ -100,7 +100,7 @@ public class BluetoothA2dpSinkFacade extends RpcReceiver {
                 BluetoothFacade.getDevice(
                         mBluetoothAdapter.getBondedDevices(), deviceStr);
         Log.d("Changing priority of device "
-                + device.getAlias() + " p: " + priority);
+                + device.getAliasName() + " p: " + priority);
         sA2dpSinkProfile.setPriority(device, priority);
     }
 
@@ -144,7 +144,7 @@ public class BluetoothA2dpSinkFacade extends RpcReceiver {
         BluetoothDevice device =
                 BluetoothFacade.getDevice(
                 BluetoothFacade.DiscoveredDevices, deviceStr);
-        Log.d("Connecting to device " + device.getAlias());
+        Log.d("Connecting to device " + device.getAliasName());
         return a2dpSinkConnect(device);
     }
 

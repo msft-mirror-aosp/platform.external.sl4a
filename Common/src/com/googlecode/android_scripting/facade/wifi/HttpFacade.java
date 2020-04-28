@@ -188,10 +188,14 @@ public class HttpFacade extends RpcReceiver {
     public HttpURLConnection httpPing(
             @RpcParameter(name = "url") String url,
             @RpcParameter(name = "timeout") @RpcOptional Integer timeout) throws IOException {
-        HttpURLConnection urlConnection = null;
-        urlConnection = httpRequest(url, timeout);
-        urlConnection.disconnect();
-        return urlConnection;
+        try {
+            HttpURLConnection urlConnection = null;
+            urlConnection = httpRequest(url, timeout);
+            urlConnection.disconnect();
+            return urlConnection;
+        } catch (UnknownHostException e) {
+            return null;
+        }
     }
 
     @Rpc(description = "Make an http request and return the response content as a string.")

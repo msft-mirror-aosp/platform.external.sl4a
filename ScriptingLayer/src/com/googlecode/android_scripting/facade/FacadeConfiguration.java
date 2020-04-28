@@ -45,7 +45,6 @@ import com.googlecode.android_scripting.facade.media.MediaScannerFacade;
 import com.googlecode.android_scripting.facade.media.MediaSessionFacade;
 import com.googlecode.android_scripting.facade.net.IpSecManagerFacade;
 import com.googlecode.android_scripting.facade.net.SocketFacade;
-import com.googlecode.android_scripting.facade.net.SocketKeepaliveFacade;
 import com.googlecode.android_scripting.facade.net.nsd.NsdManagerFacade;
 import com.googlecode.android_scripting.facade.telephony.CarrierConfigFacade;
 import com.googlecode.android_scripting.facade.telephony.ImsManagerFacade;
@@ -168,10 +167,6 @@ public class FacadeConfiguration {
 
         if (sSdkLevel >= 27) {
             sFacadeClassList.add(WifiRtt2ManagerFacade.class);
-        }
-
-        if (sSdkLevel >= 29) {
-            sFacadeClassList.add(SocketKeepaliveFacade.class);
         }
 
         for (Class<? extends RpcReceiver> recieverClass : sFacadeClassList) {

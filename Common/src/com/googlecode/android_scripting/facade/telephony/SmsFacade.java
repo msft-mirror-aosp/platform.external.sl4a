@@ -442,8 +442,7 @@ public class SmsFacade extends RpcReceiver {
     public void smsStartTrackingGsmEmergencyCBMessage() {
         if (!mGsmEmergencyCBListenerRegistered) {
             for (int messageId : mGsmCbMessageIdList) {
-                mSms.enableCellBroadcastRange(
-                        messageId,
+                mSms.enableCellBroadcast(
                         messageId,
                         SmsManager.CELL_BROADCAST_RAN_TYPE_GSM);
             }
@@ -461,8 +460,7 @@ public class SmsFacade extends RpcReceiver {
             mService.unregisterReceiver(mGsmEmergencyCBMessageListener);
             mGsmEmergencyCBListenerRegistered = false;
             for (int messageId : mGsmCbMessageIdList) {
-                mSms.disableCellBroadcastRange(
-                        messageId,
+                mSms.disableCellBroadcast(
                         messageId,
                         SmsManager.CELL_BROADCAST_RAN_TYPE_GSM);
             }
@@ -473,8 +471,7 @@ public class SmsFacade extends RpcReceiver {
     public void smsStartTrackingCdmaEmergencyCBMessage() {
         if (!mCdmaEmergencyCBListenerRegistered) {
             for (int messageId : mCdmaCbMessageIdList) {
-                mSms.enableCellBroadcastRange(
-                        messageId,
+                mSms.enableCellBroadcast(
                         messageId,
                         SmsManager.CELL_BROADCAST_RAN_TYPE_CDMA);
             }
@@ -491,8 +488,7 @@ public class SmsFacade extends RpcReceiver {
             mService.unregisterReceiver(mCdmaEmergencyCBMessageListener);
             mCdmaEmergencyCBListenerRegistered = false;
             for (int messageId : mCdmaCbMessageIdList) {
-                mSms.disableCellBroadcastRange(
-                        messageId,
+                mSms.disableCellBroadcast(
                         messageId,
                         SmsManager.CELL_BROADCAST_RAN_TYPE_CDMA);
             }
@@ -878,7 +874,7 @@ public class SmsFacade extends RpcReceiver {
                 return "CELL_WIDE_IMMEDIATE";
             case SmsCbMessage.GEOGRAPHICAL_SCOPE_PLMN_WIDE:
                 return "PLMN_WIDE ";
-            case SmsCbMessage.GEOGRAPHICAL_SCOPE_LOCATION_AREA_WIDE:
+            case SmsCbMessage.GEOGRAPHICAL_SCOPE_LA_WIDE:
                 return "LA_WIDE";
             case SmsCbMessage.GEOGRAPHICAL_SCOPE_CELL_WIDE:
                 return "CELL_WIDE";
