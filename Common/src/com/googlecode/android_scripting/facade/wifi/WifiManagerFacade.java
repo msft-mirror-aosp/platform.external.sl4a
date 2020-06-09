@@ -1426,6 +1426,16 @@ public class WifiManagerFacade extends RpcReceiver {
         makeLock(WifiManager.WIFI_MODE_SCAN_ONLY);
     }
 
+    @Rpc(description = "Acquires a high performance Wifi lock.")
+    public void wifiLockAcquireFullHighPerf() {
+        makeLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF);
+    }
+
+    @Rpc(description = "Acquires a low latency Wifi lock.")
+    public void wifiLockAcquireFullLowLatency() {
+        makeLock(WifiManager.WIFI_MODE_FULL_LOW_LATENCY);
+    }
+
     @Rpc(description = "Releases a previously acquired Wifi lock.")
     public void wifiLockRelease() {
         if (mLock != null) {
