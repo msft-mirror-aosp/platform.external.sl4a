@@ -605,7 +605,11 @@ public class WifiManagerFacade extends RpcReceiver {
             Log.v("Client Cert String is " + certStr);
             Log.v("Client Key String is " + keyStr);
             X509Certificate cert = strToX509Cert(certStr);
-            PrivateKey privKey = strToPrivateKey(keyStr);
+            String certAlgo = "RSA";
+            if (j.has("cert_algo")) {
+                certAlgo = j.getString("cert_algo");
+            }
+            PrivateKey privKey = strToPrivateKey(keyStr, certAlgo);
             Log.v("Cert is " + cert);
             Log.v("Private Key is " + privKey);
             eConfig.setClientKeyEntry(privKey, cert);
@@ -848,11 +852,11 @@ public class WifiManagerFacade extends RpcReceiver {
         return (X509Certificate) cf.generateCertificate(certStream);
     }
 
-    private PrivateKey strToPrivateKey(String key) throws NoSuchAlgorithmException,
+    private PrivateKey strToPrivateKey(String key, String algo) throws NoSuchAlgorithmException,
             InvalidKeySpecException {
         byte[] keyBytes = base64StrToBytes(key);
         PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
-        KeyFactory fact = KeyFactory.getInstance("RSA");
+        KeyFactory fact = KeyFactory.getInstance(algo);
         PrivateKey priv = fact.generatePrivate(keySpec);
         return priv;
     }
