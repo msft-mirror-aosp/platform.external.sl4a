@@ -138,6 +138,10 @@ public class ConnectivityEvents {
             JSONObject json = super.toJSON();
             json.put(ConnectivityConstants.NetworkCallbackContainer.RSSI,
                     mNetworkCapabilities.getSignalStrength());
+
+            json.put(ConnectivityConstants.NetworkCallbackContainer.METERED,
+                    !mNetworkCapabilities.hasCapability(ConnectivityConstants.NET_CAPABILITY_TEMPORARILY_NOT_METERED));
+
             if (mNetworkCapabilities.getNetworkSpecifier() != null) {
                 json.put("network_specifier",
                         mNetworkCapabilities.getNetworkSpecifier().toString());
