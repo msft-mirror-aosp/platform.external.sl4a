@@ -1300,8 +1300,8 @@ public class WifiManagerFacade extends RpcReceiver {
     }
 
     @Rpc(description = "true if this adapter supports multiple simultaneous connections.")
-    public Boolean wifiIsAdditionalStaSupported() {
-        return mWifi.isAdditionalStaSupported();
+    public Boolean wifiIsMultiStaConcurrencySupported() {
+        return mWifi.isMultiStaConcurrencySupported();
     }
 
     @Rpc(description = "Return true if WiFi is enabled.")
