@@ -802,7 +802,12 @@ public class TelephonyManagerFacade extends RpcReceiver {
     public boolean telephonySetAlwaysAllowMmsData(
             @RpcParameter(name = "subId") Integer subId,
             @RpcParameter(name = "alwaysAllow") Boolean alwaysAllow) {
-        return mTelephonyManager.createForSubscriptionId(subId).setAlwaysAllowMmsData(alwaysAllow);
+        boolean wasAlwaysAllow = mTelephonyManager.isMobileDataPolicyEnabled(
+                TelephonyManager.MOBILE_DATA_POLICY_MMS_ALWAYS_ALLOWED);
+        mTelephonyManager.createForSubscriptionId(subId)
+                .setMobileDataPolicyEnabledStatus(
+                        TelephonyManager.MOBILE_DATA_POLICY_MMS_ALWAYS_ALLOWED, alwaysAllow);
+        return wasAlwaysAllow == alwaysAllow;
     }
 
     /**
