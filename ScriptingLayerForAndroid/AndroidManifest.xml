@@ -117,7 +117,7 @@
     <uses-permission android:name="android.permission.WRITE_USER_DICTIONARY" />
     <uses-permission android:name="com.android.certinstaller.INSTALL_AS_USER" />
     <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT" />
-    <uses-permission android:name="com.android.permission.WHITELIST_BLUETOOTH_DEVICE" />
+    <uses-permission android:name="com.android.permission.ALLOWLIST_BLUETOOTH_DEVICE" />
     <application
         android:icon="@drawable/sl4a_logo_48"
         android:label="@string/application_title"
