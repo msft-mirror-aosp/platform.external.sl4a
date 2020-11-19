@@ -1235,6 +1235,14 @@ public class WifiManagerFacade extends RpcReceiver {
         return mWifi.getConnectionInfo();
     }
 
+    /**
+     * Get wifi standard for wifi connection.
+     */
+    @Rpc(description = "Return connection WiFi standard")
+    public Integer wifiGetConnectionStandard() {
+        return mWifi.getConnectionInfo().getWifiStandard();
+    }
+
     @Rpc(description = "Returns wifi activity and energy usage info.")
     public WifiActivityEnergyInfo wifiGetControllerActivityEnergyInfo() {
         WifiActivityEnergyInfo[] mutable = {null};
