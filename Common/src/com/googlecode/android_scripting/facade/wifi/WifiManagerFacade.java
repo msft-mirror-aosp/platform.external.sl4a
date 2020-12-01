@@ -1994,6 +1994,40 @@ public class WifiManagerFacade extends RpcReceiver {
             Log.d("Posting event: onProgress");
             mEventFacade.postEvent(EASY_CONNECT_CALLBACK_TAG, msg);
         }
+
+        @Override
+        public void onBootstrapUriGenerated(String uri) {
+            Bundle msg = new Bundle();
+            msg.putString("Type", "onBootstrapUriGenerated");
+            if (uri != null) {
+                Log.d("onBootstrapUriGenerated uri: " + uri);
+                msg.putString("generatedUri", uri);
+            } else {
+                msg.putString("generatedUri", "");
+            }
+            Log.d("Posting event: onBootstrapUriGenerated");
+            mEventFacade.postEvent(EASY_CONNECT_CALLBACK_TAG, msg);
+        }
+    }
+
+    private static @WifiManager.EasyConnectCryptographyCurve
+            int getEasyConnectCryptographyCurve(String curve) {
+
+        switch (curve) {
+            case "secp384r1":
+                return WifiManager.EASY_CONNECT_CRYPTOGRAPHY_CURVE_SECP384R1;
+            case "secp521r1":
+                return WifiManager.EASY_CONNECT_CRYPTOGRAPHY_CURVE_SECP521R1;
+            case "brainpoolP256r1":
+                return WifiManager.EASY_CONNECT_CRYPTOGRAPHY_CURVE_BRAINPOOLP256R1;
+            case "brainpoolP384r1":
+                return WifiManager.EASY_CONNECT_CRYPTOGRAPHY_CURVE_BRAINPOOLP384R1;
+            case "brainpoolP512r1":
+                return WifiManager.EASY_CONNECT_CRYPTOGRAPHY_CURVE_BRAINPOOLP512R1;
+            case "prime256v1":
+            default:
+                return WifiManager.EASY_CONNECT_CRYPTOGRAPHY_CURVE_PRIME256V1;
+        }
     }
 
     /**
@@ -2033,6 +2067,24 @@ public class WifiManagerFacade extends RpcReceiver {
 
         // Start Easy Connect
         mWifi.startEasyConnectAsEnrolleeInitiator(configuratorUri, mService.getMainExecutor(),
+                dppStatusCallback);
+    }
+
+    /**
+     * Start Easy Connect (DPP) in Responder-Enrollee role: Receive Wi-Fi configuration from a peer
+     *
+     * @param deviceInfo The device specific info to attach in the generated URI
+     * @param cryptographyCurve Elliptic curve cryptography used to generate DPP
+     *        public/private key pair
+     */
+    @Rpc(description = "Easy Connect Responder-Enrollee: Receive Wi-Fi configuration from peer")
+    public void startEasyConnectAsEnrolleeResponder(@RpcParameter(name = "deviceInfo") String
+            deviceInfo, @RpcParameter(name = "cryptographyCurve") String cryptographyCurve) {
+        EasyConnectCallback dppStatusCallback = new EasyConnectCallback();
+
+        // Start Easy Connect
+        mWifi.startEasyConnectAsEnrolleeResponder(deviceInfo,
+                getEasyConnectCryptographyCurve(cryptographyCurve), mService.getMainExecutor(),
                 dppStatusCallback);
     }
 
