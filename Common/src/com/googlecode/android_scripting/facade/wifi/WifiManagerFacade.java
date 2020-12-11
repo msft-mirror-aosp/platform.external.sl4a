@@ -1704,6 +1704,11 @@ public class WifiManagerFacade extends RpcReceiver {
         return enabled;
     }
 
+    @Rpc(description = "Restart the WiFi subsystem.")
+    public void restartWifiSubsystem(@RpcParameter(name = "reason") String reason) {
+        mWifi.restartWifiSubsystem(reason);
+    }
+
     @Rpc(description = "Toggle Wifi scan always available on and off.", returns = "True if Wifi scan is always available.")
     public Boolean wifiToggleScanAlwaysAvailable(
             @RpcParameter(name = "enabled") @RpcOptional Boolean enabled)
