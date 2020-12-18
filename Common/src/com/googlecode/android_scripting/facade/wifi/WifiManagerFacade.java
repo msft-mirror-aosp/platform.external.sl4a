@@ -17,6 +17,8 @@
 package com.googlecode.android_scripting.facade.wifi;
 
 import static android.net.NetworkCapabilities.TRANSPORT_WIFI;
+import static android.net.wifi.WifiScanner.WIFI_BAND_24_GHZ;
+import static android.net.wifi.WifiScanner.WIFI_BAND_5_GHZ;
 
 import static com.googlecode.android_scripting.jsonrpc.JsonBuilder.build;
 
@@ -35,6 +37,7 @@ import android.net.NetworkInfo.DetailedState;
 import android.net.NetworkRequest;
 import android.net.NetworkSpecifier;
 import android.net.Uri;
+import android.net.wifi.CoexUnsafeChannel;
 import android.net.wifi.EasyConnectStatusCallback;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SoftApCapability;
@@ -102,9 +105,11 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -2119,5 +2124,149 @@ public class WifiManagerFacade extends RpcReceiver {
     public void wifiEnableAutojoinPasspoint(@RpcParameter(name = "FQDN") String fqdn,
             @RpcParameter(name = "enableAutojoin") Boolean enableAutojoin) {
         mWifi.allowAutojoinPasspoint(fqdn, enableAutojoin);
+    }
+
+    private CoexUnsafeChannel genCoexUnsafeChannel(JSONObject j) throws JSONException {
+        if (j == null || !j.has("band") || !j.has("channel")) {
+            return null;
+        }
+
+        final int band;
+        final String jsonBand = j.getString("band");
+        if (TextUtils.equals(jsonBand, "24_GHZ")) {
+            band = WIFI_BAND_24_GHZ;
+        } else if (TextUtils.equals(jsonBand, "5_GHZ")) {
+            band = WIFI_BAND_5_GHZ;
+        } else {
+            return null;
+        }
+        final CoexUnsafeChannel unsafeChannel = new CoexUnsafeChannel(band, j.getInt("channel"));
+        if (j.has("powerCapDbm")) {
+            unsafeChannel.setPowerCapDbm(j.getInt("powerCapDbm"));
+        }
+        return unsafeChannel;
+    }
+
+    private Set<CoexUnsafeChannel> genCoexUnsafeChannels(
+            JSONArray jsonCoexUnsafeChannelsArray) throws JSONException {
+        if (jsonCoexUnsafeChannelsArray == null) {
+            return null;
+        }
+        Set<CoexUnsafeChannel> unsafeChannels = new HashSet<>();
+        for (int i = 0; i < jsonCoexUnsafeChannelsArray.length(); i++) {
+            unsafeChannels.add(
+                    genCoexUnsafeChannel(jsonCoexUnsafeChannelsArray.getJSONObject(i)));
+        }
+        return unsafeChannels;
+    }
+
+    private int genCoexRestrictions(JSONArray jsonCoexRestrictionArray) throws JSONException {
+        if (jsonCoexRestrictionArray == null) {
+            return 0;
+        }
+        int coexRestrictions = 0;
+        for (int i = 0; i < jsonCoexRestrictionArray.length(); i++) {
+            final String jsonRestriction = jsonCoexRestrictionArray.getString(i);
+            if (TextUtils.equals(jsonRestriction, "WIFI_DIRECT")) {
+                coexRestrictions |= WifiManager.COEX_RESTRICTION_WIFI_DIRECT;
+            }
+            if (TextUtils.equals(jsonRestriction, "SOFTAP")) {
+                coexRestrictions |= WifiManager.COEX_RESTRICTION_SOFTAP;
+            }
+            if (TextUtils.equals(jsonRestriction, "WIFI_AWARE")) {
+                coexRestrictions |= WifiManager.COEX_RESTRICTION_WIFI_AWARE;
+            }
+        }
+        return coexRestrictions;
+    }
+
+    /**
+     * Converts a set of {@link CoexUnsafeChannel} to a {@link JSONArray} of {@link JSONObject} of
+     * format:
+     *     {
+     *         "band": <"24_GHZ" or "5_GHZ">
+     *         "channel" : <Channel Number>
+     *         (Optional) "powerCapDbm" : <Power Cap in Dbm>
+     *     }
+     */
+    private JSONArray coexUnsafeChannelsToJson(Set<CoexUnsafeChannel> unsafeChannels)
+            throws JSONException {
+        final JSONArray jsonCoexUnsafeChannelArray = new JSONArray();
+        for (CoexUnsafeChannel unsafeChannel : unsafeChannels) {
+            final String jsonBand;
+            if (unsafeChannel.getBand() == WIFI_BAND_24_GHZ) {
+                jsonBand = "24_GHZ";
+            } else if (unsafeChannel.getBand() == WIFI_BAND_5_GHZ) {
+                jsonBand = "5_GHZ";
+            } else {
+                continue;
+            }
+            final JSONObject jsonUnsafeChannel = new JSONObject();
+            jsonUnsafeChannel.put("band", jsonBand);
+            jsonUnsafeChannel.put("channel", unsafeChannel.getChannel());
+            if (unsafeChannel.isPowerCapAvailable()) {
+                jsonUnsafeChannel.put("powerCapDbm", unsafeChannel.getPowerCapDbm());
+            }
+            jsonCoexUnsafeChannelArray.put(jsonUnsafeChannel);
+        }
+        return jsonCoexUnsafeChannelArray;
+    }
+
+    /**
+     * Converts a coex restriction bitmask {@link WifiManager#getCoexRestrictions()} to a JSON array
+     * of possible values "WIFI_DIRECT", "SOFTAP", "WIFI_AWARE".
+     */
+    private JSONArray coexRestrictionsToJson(int coexRestrictions) {
+        final JSONArray jsonCoexRestrictionArray = new JSONArray();
+        if ((coexRestrictions & WifiManager.COEX_RESTRICTION_WIFI_DIRECT) != 0) {
+            jsonCoexRestrictionArray.put("WIFI_DIRECT");
+        }
+        if ((coexRestrictions & WifiManager.COEX_RESTRICTION_SOFTAP) != 0) {
+            jsonCoexRestrictionArray.put("SOFTAP");
+        }
+        if ((coexRestrictions & WifiManager.COEX_RESTRICTION_WIFI_AWARE) != 0) {
+            jsonCoexRestrictionArray.put("WIFI_AWARE");
+        }
+        return jsonCoexRestrictionArray;
+    }
+
+    /**
+     * Sets the active list of unsafe channels to avoid for coex and the restricted Wifi interfaces.
+     *
+     * @param unsafeChannels JSONArray representation of {@link CoexUnsafeChannel}.
+     *                       See {@link #coexUnsafeChannelsToJson(Set)}.
+     * @param restrictions JSONArray representation of coex restrictions.
+     *                     See {@link #coexRestrictionsToJson(int)}.
+     * @return {@code true} if the API is enabled (default algorithm disabled), {@code false} if the
+     *     API is disabled (default algorithm enabled).
+     * @throws JSONException
+     */
+    @Rpc(description = "Set the unsafe channels to avoid for coex. Returns true if API is enabled")
+    public Boolean wifiSetCoexUnsafeChannels(
+            @RpcParameter(name = "unsafeChannels") JSONArray unsafeChannels,
+            @RpcParameter(name = "restrictions") JSONArray restrictions) throws JSONException {
+        mWifi.setCoexUnsafeChannels(
+                genCoexUnsafeChannels(unsafeChannels), genCoexRestrictions(restrictions));
+        return !mWifi.isDefaultCoexAlgorithmEnabled();
+    }
+
+    /**
+     * Get active list of unsafe channels to avoid for coex.
+     * @return JSONArray representation of {@link CoexUnsafeChannel}.
+     *     See {@link #coexUnsafeChannelsToJson(Set)}.
+     */
+    @Rpc(description = "Returns the active list of unsafe channels to avoid for coex")
+    public JSONArray wifiGetCoexUnsafeChannels() throws JSONException {
+        return coexUnsafeChannelsToJson(mWifi.getCoexUnsafeChannels());
+    }
+
+    /**
+     * Get the wifi interfaces to restrict from unsafe channels
+     * @return JSONArray representation of coex restrictions.
+     *     See {@link #coexRestrictionsToJson(int)}.
+     */
+    @Rpc(description = "Returns the wifi interfaces to restrict from unsafe channels")
+    public JSONArray wifiGetCoexRestrictions() {
+        return coexRestrictionsToJson(mWifi.getCoexRestrictions());
     }
 }
