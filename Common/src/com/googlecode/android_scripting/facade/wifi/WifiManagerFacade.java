@@ -52,6 +52,7 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.NetworkRequestMatchCallback;
 import android.net.wifi.WifiManager.NetworkRequestUserSelectionCallback;
+import android.net.wifi.WifiManager.SubsystemRestartTrackingCallback;
 import android.net.wifi.WifiManager.WifiLock;
 import android.net.wifi.WifiNetworkSpecifier;
 import android.net.wifi.WifiNetworkSuggestion;
@@ -138,6 +139,7 @@ public class WifiManagerFacade extends RpcReceiver {
     private final WifiScanResultsReceiver mWifiScanResultsReceiver;
     private final WifiStateChangeReceiver mStateChangeReceiver;
     private final WifiNetworkSuggestionStateChangeReceiver mNetworkSuggestionStateChangeReceiver;
+    private SubsystemRestartTrackingCallbackFacade mSubsystemRestartTrackingCallback = null;
     private final HandlerThread mCallbackHandlerThread;
     private final Object mCallbackLock = new Object();
     private final Map<NetworkSpecifier, NetworkCallback> mNetworkCallbacks = new HashMap<>();
@@ -1090,6 +1092,27 @@ public class WifiManagerFacade extends RpcReceiver {
         }
     }
 
+    private class SubsystemRestartTrackingCallbackFacade extends SubsystemRestartTrackingCallback {
+        private final EventFacade mEventFacade;
+
+        SubsystemRestartTrackingCallbackFacade(EventFacade eventFacade) {
+            super();
+            mEventFacade = eventFacade;
+        }
+
+        @Override
+        public void onSubsystemRestarting() {
+            Log.v("onSubsystemRestarting");
+            mEventFacade.postEvent("WifiSubsystemRestarting", null);
+        }
+
+        @Override
+        public void onSubsystemRestarted() {
+            Log.v("onSubsystemRestarted");
+            mEventFacade.postEvent("WifiSubsystemRestarted", null);
+        }
+    }
+
     private OsuProvider buildTestOsuProvider(JSONObject config) {
         String osuServiceDescription = "Google Passpoint Test Service";
         List<Integer> osuMethodList =
@@ -1711,6 +1734,11 @@ public class WifiManagerFacade extends RpcReceiver {
 
     @Rpc(description = "Restart the WiFi subsystem.")
     public void restartWifiSubsystem(@RpcParameter(name = "reason") String reason) {
+        if (mSubsystemRestartTrackingCallback == null) {
+            // one-time registration if needed
+            mSubsystemRestartTrackingCallback = new SubsystemRestartTrackingCallbackFacade(
+                    mEventFacade);
+        }
         mWifi.restartWifiSubsystem(reason);
     }
 
