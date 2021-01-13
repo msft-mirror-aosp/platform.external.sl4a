@@ -20,6 +20,7 @@ import static android.net.NetworkCapabilities.TRANSPORT_WIFI;
 
 import static com.googlecode.android_scripting.jsonrpc.JsonBuilder.build;
 
+import android.annotation.NonNull;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -30,6 +31,7 @@ import android.net.ConnectivityManager.NetworkCallback;
 import android.net.DhcpInfo;
 import android.net.MacAddress;
 import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.net.NetworkInfo.DetailedState;
 import android.net.NetworkRequest;
@@ -210,10 +212,11 @@ public class WifiManagerFacade extends RpcReceiver {
 
     private final class NetworkCallbackImpl extends NetworkCallback {
         private static final String EVENT_TAG = mEventType + "NetworkCallback";
+        private boolean mOnAvailableCalled = false;
 
         @Override
         public void onAvailable(Network network) {
-            mEventFacade.postEvent(EVENT_TAG + "OnAvailable", mWifi.getConnectionInfo());
+            mOnAvailableCalled = true;
         }
 
         @Override
@@ -224,6 +227,20 @@ public class WifiManagerFacade extends RpcReceiver {
         @Override
         public void onLost(Network network) {
             mEventFacade.postEvent(EVENT_TAG + "OnLost", null);
+        }
+
+        @Override
+        public void onCapabilitiesChanged(@NonNull Network network,
+                @NonNull NetworkCapabilities networkCapabilities) {
+            if (mOnAvailableCalled) {
+                // send the onAvailable event with WifiInfo details fetched from the first
+                // onCapabilitiesChanged callback after onAvailable callback invocation.
+                mEventFacade.postEvent(EVENT_TAG + "OnAvailable",
+                        networkCapabilities.getTransportInfo());
+                mOnAvailableCalled = false;
+            }
+            mEventFacade.postEvent(EVENT_TAG + "OnCapabilitiesChanged",
+                    networkCapabilities.getTransportInfo());
         }
     };
 
