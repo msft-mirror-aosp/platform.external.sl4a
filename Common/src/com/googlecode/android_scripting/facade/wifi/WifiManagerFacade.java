@@ -16,6 +16,7 @@
 
 package com.googlecode.android_scripting.facade.wifi;
 
+import static android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET;
 import static android.net.NetworkCapabilities.TRANSPORT_WIFI;
 import static android.net.wifi.WifiScanner.WIFI_BAND_24_GHZ;
 import static android.net.wifi.WifiScanner.WIFI_BAND_5_GHZ;
@@ -419,6 +420,20 @@ public class WifiManagerFacade extends RpcReceiver {
     public class WifiStateChangeReceiver extends BroadcastReceiver {
         String mCachedWifiInfo = "";
 
+        // When a peer to peer request is active, WifiManager.getConnectionInfo() returns
+        // the peer to peer connection details. Hence use networking API's to retrieve the
+        // internet connection details.
+        private WifiInfo getInternetConnectivityWifiInfo() {
+            for (Network network : mCm.getAllNetworks())  {
+                NetworkCapabilities netCap = mCm.getNetworkCapabilities(network);
+                if (netCap.hasTransport(TRANSPORT_WIFI)
+                        && netCap.hasCapability(NET_CAPABILITY_INTERNET)) {
+                    return (WifiInfo) netCap.getTransportInfo();
+                }
+            }
+            return null;
+        }
+
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
@@ -429,7 +444,12 @@ public class WifiManagerFacade extends RpcReceiver {
                 // If network info is of type wifi, send wifi events.
                 if (nInfo.getType() == ConnectivityManager.TYPE_WIFI) {
                     if (nInfo.getDetailedState().equals(DetailedState.CONNECTED)) {
-                        WifiInfo wInfo = mWifi.getConnectionInfo();
+                        WifiInfo wInfo = getInternetConnectivityWifiInfo();
+                        if (wInfo == null) {
+                            Log.e("Failed to get WifiInfo for internet connection. "
+                                    + "Not sending wifi network connection event");
+                            return;
+                        }
                         String bssid = wInfo.getBSSID();
                         if (bssid != null && !mCachedWifiInfo.equals(wInfo.toString())) {
                             Log.d("WifiNetworkConnected");
