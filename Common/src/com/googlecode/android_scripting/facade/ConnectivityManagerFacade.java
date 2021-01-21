@@ -16,6 +16,8 @@
 
 package com.googlecode.android_scripting.facade;
 
+import static android.net.NetworkCapabilities.TRANSPORT_WIFI;
+
 import android.app.Service;
 import android.app.usage.NetworkStats;
 import android.app.usage.NetworkStats.Bucket;
@@ -36,6 +38,7 @@ import android.net.ProxyInfo;
 import android.net.RouteInfo;
 import android.net.StringNetworkSpecifier;
 import android.net.Uri;
+import android.net.wifi.WifiNetworkSpecifier;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.provider.Settings;
@@ -44,6 +47,7 @@ import com.google.common.io.ByteStreams;
 import com.googlecode.android_scripting.FileUtils;
 import com.googlecode.android_scripting.Log;
 import com.googlecode.android_scripting.facade.wifi.WifiAwareManagerFacade;
+import com.googlecode.android_scripting.facade.wifi.WifiManagerFacade;
 import com.googlecode.android_scripting.jsonrpc.RpcReceiver;
 import com.googlecode.android_scripting.rpc.Rpc;
 import com.googlecode.android_scripting.rpc.RpcOptional;
@@ -66,6 +70,7 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -550,6 +555,34 @@ public class ConnectivityManagerFacade extends RpcReceiver {
         }
         mNetworkCallback = new NetworkCallback(NetworkCallback.EVENT_ALL);
         mManager.requestNetwork(networkRequest, mNetworkCallback);
+        String key = mNetworkCallback.mId;
+        mNetworkCallbackMap.put(key, mNetworkCallback);
+        return key;
+    }
+
+    /**
+     * Initiates a network request {@link NetworkRequest} using {@link WifiNetworkSpecifier}.
+     *
+     * @param wNs JSONObject Dictionary of wifi network specifier parameters
+     * @param timeoutInMs Timeout for the request. 0 indicates no timeout.
+     * @throws JSONException
+     * @throws GeneralSecurityException
+     */
+    @Rpc(description = "Initiates a network request using the provided network specifier")
+    public String connectivityRequestWifiNetwork(
+            @RpcParameter(name = "wifiNetworkSpecifier") JSONObject wNs,
+            @RpcParameter(name = "timeoutInMS") Integer timeoutInMs)
+            throws JSONException, GeneralSecurityException {
+        NetworkRequest networkRequest = new NetworkRequest.Builder()
+                .addTransportType(TRANSPORT_WIFI)
+                .setNetworkSpecifier(WifiManagerFacade.genWifiNetworkSpecifier(wNs))
+                .build();
+        mNetworkCallback = new NetworkCallback(NetworkCallback.EVENT_ALL);
+        if (timeoutInMs != 0) {
+            mManager.requestNetwork(networkRequest, mNetworkCallback, timeoutInMs);
+        } else {
+            mManager.requestNetwork(networkRequest, mNetworkCallback);
+        }
         String key = mNetworkCallback.mId;
         mNetworkCallbackMap.put(key, mNetworkCallback);
         return key;
