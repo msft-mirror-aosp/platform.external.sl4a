@@ -36,6 +36,7 @@ import android.net.IpPrefix;
 import android.net.LinkAddress;
 import android.net.LinkProperties;
 import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.net.ProxyInfo;
 import android.net.RouteInfo;
@@ -51,6 +52,7 @@ import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiScanner.ScanData;
 import android.net.wifi.WpsInfo;
+import android.net.wifi.aware.WifiAwareNetworkInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pGroup;
@@ -99,6 +101,7 @@ import com.android.internal.net.LegacyVpnInfo;
 import com.googlecode.android_scripting.ConvertUtils;
 import com.googlecode.android_scripting.Log;
 import com.googlecode.android_scripting.event.Event;
+import com.googlecode.android_scripting.facade.ConnectivityConstants;
 import com.googlecode.android_scripting.facade.DataUsageController.DataUsageInfo;
 import com.googlecode.android_scripting.facade.telephony.InCallServiceImpl;
 import com.googlecode.android_scripting.facade.telephony.TelephonyConstants;
@@ -238,6 +241,9 @@ public class JsonBuilder {
         }
         if (data instanceof Network) {
             return buildNetwork((Network) data);
+        }
+        if (data instanceof NetworkCapabilities) {
+            return buildNetworkCapabilities((NetworkCapabilities) data);
         }
         if (data instanceof NetworkInfo) {
             return buildNetworkInfo((NetworkInfo) data);
@@ -927,6 +933,48 @@ public class JsonBuilder {
         JSONObject nw = new JSONObject();
         nw.put("netId", data.netId);
         return nw;
+    }
+
+    public static JSONObject buildNetworkCapabilities(JSONObject nc, NetworkCapabilities data)
+            throws JSONException {
+        nc.put(ConnectivityConstants.NetworkCallbackContainer.RSSI,
+                data.getSignalStrength());
+        nc.put(ConnectivityConstants.NetworkCallbackContainer.METERED,
+                !data.hasCapability(ConnectivityConstants.NET_CAPABILITY_TEMPORARILY_NOT_METERED));
+        nc.put(ConnectivityConstants.NET_CAPABILITIES_TRANSPORT_TYPE,
+                new JSONArray(data.getTransportTypes()));
+        nc.put(ConnectivityConstants.NET_CAPABILITIES_CAPABILITIES,
+                new JSONArray(data.getCapabilities()));
+
+        if (data.getNetworkSpecifier() != null) {
+            nc.put("network_specifier",
+                    data.getNetworkSpecifier().toString());
+        }
+        if (data.getTransportInfo() != null) {
+            nc.put("transport_info",
+                    JsonBuilder.build(data.getTransportInfo()));
+            if (data.getTransportInfo() instanceof WifiAwareNetworkInfo) {
+                WifiAwareNetworkInfo anc =
+                        (WifiAwareNetworkInfo) data.getTransportInfo();
+
+                String ipv6 = anc.getPeerIpv6Addr().toString();
+                if (ipv6.charAt(0) == '/') {
+                    ipv6 = ipv6.substring(1);
+                }
+                nc.put("aware_ipv6", ipv6);
+                if (anc.getPort() != 0) {
+                    nc.put("aware_port", anc.getPort());
+                }
+                if (anc.getTransportProtocol() != -1) {
+                    nc.put("aware_transport_protocol", anc.getTransportProtocol());
+                }
+            }
+        }
+        return nc;
+    }
+
+    private static Object buildNetworkCapabilities(NetworkCapabilities data) throws JSONException {
+        return buildNetworkCapabilities(new JSONObject(), data);
     }
 
     private static Object buildNetworkInfo(NetworkInfo data)
