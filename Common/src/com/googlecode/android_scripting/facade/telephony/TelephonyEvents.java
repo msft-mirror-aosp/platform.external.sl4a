@@ -331,7 +331,7 @@ public class TelephonyEvents {
                 JSONObject cfg  = new JSONObject();
                 cfg.put(
                         TelephonyConstants.PhysicalChannelConfigContainer.CELL_BANDWIDTH_DOWNLINK,
-                        c.getCellBandwidthDownlink());
+                        c.getCellBandwidthDownlinkKhz());
                 cfg.put(
                         TelephonyConstants.PhysicalChannelConfigContainer.CONNECTION_STATUS,
                         c.getConnectionStatus());
