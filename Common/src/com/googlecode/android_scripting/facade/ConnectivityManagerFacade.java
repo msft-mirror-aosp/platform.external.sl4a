@@ -460,16 +460,19 @@ public class ConnectivityManagerFacade extends RpcReceiver {
             Log.d("build ClearCapabilities");
             builder.clearCapabilities();
         }
-        if (configJson.has("TransportType")) {
-            Log.d("build TransportType" + configJson.getInt("TransportType"));
-            builder.addTransportType(configJson.getInt("TransportType"));
+        if (configJson.has(ConnectivityConstants.NET_CAPABILITIES_TRANSPORT_TYPE)) {
+            Log.d("build TransportType"
+                    + configJson.getInt(ConnectivityConstants.NET_CAPABILITIES_TRANSPORT_TYPE));
+            builder.addTransportType(
+                    configJson.getInt(ConnectivityConstants.NET_CAPABILITIES_TRANSPORT_TYPE));
         }
         if (configJson.has("SignalStrength")) {
             Log.d("build SignalStrength" + configJson.getInt("SignalStrength"));
             builder.setSignalStrength(configJson.getInt("SignalStrength"));
         }
-        if (configJson.has("Capability")) {
-            JSONArray capabilities = configJson.getJSONArray("Capability");
+        if (configJson.has(ConnectivityConstants.NET_CAPABILITIES_CAPABILITIES)) {
+            JSONArray capabilities =
+                    configJson.getJSONArray(ConnectivityConstants.NET_CAPABILITIES_CAPABILITIES);
             for (int i = 0; i < capabilities.length(); i++) {
                 Log.d("build Capability" + capabilities.getInt(i));
                 builder.addCapability(capabilities.getInt(i));
@@ -629,6 +632,16 @@ public class ConnectivityManagerFacade extends RpcReceiver {
     @Rpc(description = "Get connection status information about all network types supported by the device.")
     public NetworkInfo[] connectivityNetworkGetAllInfo() {
         return mManager.getAllNetworkInfo();
+    }
+
+    @Rpc(description = "Get connection status information about all network types supported by the device.")
+    public NetworkCapabilities[] connectivityNetworkGetAllCapabilities() {
+        Network[] networks = mManager.getAllNetworks();
+        NetworkCapabilities[] networkCapabilties = new NetworkCapabilities[networks.length];
+        for (int i = 0; i < networks.length; i++) {
+            networkCapabilties[i] = mManager.getNetworkCapabilities(networks[i]);
+        }
+        return networkCapabilties;
     }
 
     @Rpc(description = "Check whether the active network is connected to the Internet.")
