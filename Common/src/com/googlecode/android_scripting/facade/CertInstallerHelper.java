@@ -22,10 +22,10 @@ import android.security.KeyStore;
 import android.util.Log;
 
 import com.android.internal.net.VpnProfile;
-import com.android.org.bouncycastle.asn1.ASN1InputStream;
-import com.android.org.bouncycastle.asn1.ASN1Sequence;
-import com.android.org.bouncycastle.asn1.DEROctetString;
-import com.android.org.bouncycastle.asn1.x509.BasicConstraints;
+import com.android.internal.org.bouncycastle.asn1.ASN1InputStream;
+import com.android.internal.org.bouncycastle.asn1.ASN1Sequence;
+import com.android.internal.org.bouncycastle.asn1.DEROctetString;
+import com.android.internal.org.bouncycastle.asn1.x509.BasicConstraints;
 
 import junit.framework.Assert;
 
