@@ -805,7 +805,7 @@ public class TelephonyManagerFacade extends RpcReceiver {
         boolean wasAlwaysAllow = mTelephonyManager.isMobileDataPolicyEnabled(
                 TelephonyManager.MOBILE_DATA_POLICY_MMS_ALWAYS_ALLOWED);
         mTelephonyManager.createForSubscriptionId(subId)
-                .setMobileDataPolicyEnabledStatus(
+                .setMobileDataPolicyEnabled(
                         TelephonyManager.MOBILE_DATA_POLICY_MMS_ALWAYS_ALLOWED, alwaysAllow);
         return wasAlwaysAllow == alwaysAllow;
     }
