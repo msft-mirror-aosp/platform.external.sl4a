@@ -15,9 +15,6 @@
  */
 
 package com.googlecode.android_scripting.facade.telephony;
-import com.android.ims.ImsConfig;
-import com.android.internal.telephony.RILConstants;
-import com.googlecode.android_scripting.Log;
 
 import android.telecom.TelecomManager;
 import android.telephony.DataConnectionRealTimeInfo;
@@ -26,6 +23,11 @@ import android.telephony.ServiceState;
 import android.telephony.TelephonyDisplayInfo;
 import android.telephony.TelephonyManager;
 import android.telephony.VoLteServiceState;
+
+import com.android.ims.ImsConfig;
+import com.android.internal.telephony.RILConstants;
+
+import com.googlecode.android_scripting.Log;
 
 /**
  * Telephony utility functions
@@ -201,8 +203,8 @@ public class TelephonyUtils {
                 return TelephonyConstants.OVERRIDE_NETWORK_TYPE_LTE_ADVANCED_PRO;
             case TelephonyDisplayInfo.OVERRIDE_NETWORK_TYPE_NR_NSA:
                 return TelephonyConstants.OVERRIDE_NETWORK_TYPE_NR_NSA;
-            case TelephonyDisplayInfo.OVERRIDE_NETWORK_TYPE_NR_NSA_MMWAVE:
-                return TelephonyConstants.OVERRIDE_NETWORK_TYPE_NR_NSA_MMWAVE;
+            case TelephonyDisplayInfo.OVERRIDE_NETWORK_TYPE_NR_ADVANCED:
+                return TelephonyConstants.OVERRIDE_NETWORK_TYPE_NR_ADVANCED;
         }
         Log.d("getDisplayInfoStateString error. int: " + state);
         return TelephonyConstants.OVERRIDE_NETWORK_TYPE_NONE;
