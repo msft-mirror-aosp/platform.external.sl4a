@@ -188,6 +188,7 @@ public class TelephonyConstants {
     public static final String RAT_TD_SCDMA = "TD_SCDMA";
     public static final String RAT_GLOBAL = "GLOBAL";
     public static final String RAT_LTE_CA = "LTE_CA";
+    public static final String RAT_NR = "NR";
     public static final String RAT_UNKNOWN = "UNKNOWN";
 
     /**
