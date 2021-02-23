@@ -802,7 +802,8 @@ public class WifiManagerFacade extends RpcReceiver {
         }
         if (j.has("enhancedMacRandomizationEnabled")
                 && j.getBoolean("enhancedMacRandomizationEnabled")) {
-            builder = builder.setIsEnhancedMacRandomizationEnabled(true);
+            builder = builder.setMacRandomizationSetting(
+                WifiNetworkSuggestion.RANDOMIZATION_NON_PERSISTENT);
         }
 
         return builder.build();
