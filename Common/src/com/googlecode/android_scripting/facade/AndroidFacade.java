@@ -44,6 +44,8 @@ import android.text.method.PasswordTransformationMethod;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.android.modules.utils.build.SdkLevel;
+
 import com.googlecode.android_scripting.BaseApplication;
 import com.googlecode.android_scripting.FileUtils;
 import com.googlecode.android_scripting.FutureActivityTaskExecutor;
@@ -598,6 +600,16 @@ public class AndroidFacade extends RpcReceiver {
   @Rpc(description = "Returns the SDK version.")
   public Integer getBuildSdkVersion() {
     return Build.VERSION.SDK_INT;
+  }
+
+  @Rpc(description = "Returns whether the device is running SDK at least R")
+  public boolean isSdkAtLeastR() {
+    return SdkLevel.isAtLeastR();
+  }
+
+  @Rpc(description = "Returns whether the device is running SDK at least S")
+  public boolean isSdkAtLeastS() {
+    return SdkLevel.isAtLeastS();
   }
 
   @Rpc(description = "Returns the current device time.")
