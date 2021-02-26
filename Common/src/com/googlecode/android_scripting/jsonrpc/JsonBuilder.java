@@ -924,7 +924,7 @@ public class JsonBuilder {
 
     private static Object buildNetwork(Network data) throws JSONException {
         JSONObject nw = new JSONObject();
-        nw.put("netId", data.netId);
+        nw.put("netId", data.getNetId());
         return nw;
     }
 
