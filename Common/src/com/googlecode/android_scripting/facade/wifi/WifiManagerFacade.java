@@ -1341,9 +1341,22 @@ public class WifiManagerFacade extends RpcReceiver {
         return mWifi.is5GHzBandSupported();
     }
 
-    @Rpc(description = "true if this adapter supports multiple simultaneous connections.")
-    public Boolean wifiIsMultiStaConcurrencySupported() {
-        return mWifi.isMultiStaConcurrencySupported();
+    @Rpc(description = "true if this adapter supports multiple simultaneous connections for"
+            + "local only use-case.")
+    public Boolean wifiIsStaConcurrencyForLocalOnlyConnectionsSupported() {
+        return mWifi.isStaConcurrencyForLocalOnlyConnectionsSupported();
+    }
+
+    @Rpc(description = "true if this adapter supports multiple simultaneous connections for mbb "
+            + "wifi to wifi switching.")
+    public Boolean wifiIsMakeBeforeBreakWifiSwitchingSupported() {
+        return mWifi.isMakeBeforeBreakWifiSwitchingSupported();
+    }
+
+    @Rpc(description = "true if this adapter supports multiple simultaneous connections for "
+            + "restricted connection use-case.")
+    public Boolean wifiIsStaConcurrencyForRestrictedConnectionsSupported() {
+        return mWifi.isStaConcurrencyForRestrictedConnectionsSupported();
     }
 
     @Rpc(description = "Return true if WiFi is enabled.")
