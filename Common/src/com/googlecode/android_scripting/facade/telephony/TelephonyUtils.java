@@ -398,6 +398,8 @@ public class TelephonyUtils {
                 return TelephonyConstants.RAT_IDEN;
             case TelephonyManager.NETWORK_TYPE_LTE_CA:
                 return TelephonyConstants.RAT_LTE_CA;
+            case TelephonyManager.NETWORK_TYPE_NR:
+                return TelephonyConstants.RAT_NR;
         }
         return TelephonyConstants.RAT_UNKNOWN;
     }
