@@ -34,9 +34,9 @@ import android.net.NetworkInfo;
 import android.net.NetworkPolicy;
 import android.net.NetworkPolicyManager;
 import android.net.NetworkRequest;
+import android.net.NetworkSpecifier;
 import android.net.ProxyInfo;
 import android.net.RouteInfo;
-import android.net.StringNetworkSpecifier;
 import android.net.Uri;
 import android.net.wifi.WifiNetworkSpecifier;
 import android.os.Bundle;
@@ -451,6 +451,24 @@ public class ConnectivityManagerFacade extends RpcReceiver {
 
     private NetworkRequest buildNetworkRequestFromJson(JSONObject configJson)
             throws JSONException {
+        return makeNetworkRequestBuilderFromJson(configJson).build();
+    }
+
+    private NetworkRequest buildWifiAwareNetworkRequestFromJson(JSONObject configJson)
+            throws JSONException {
+        final NetworkRequest.Builder builder = makeNetworkRequestBuilderFromJson(configJson);
+        if (configJson.has("NetworkSpecifier")) {
+            final String strSpecifier = configJson.getString("NetworkSpecifier");
+            Log.d("build NetworkSpecifier" + strSpecifier);
+            final NetworkSpecifier specifier = WifiAwareManagerFacade.getNetworkSpecifier(
+                    new JSONObject(strSpecifier));
+            builder.setNetworkSpecifier(specifier);
+        }
+        return builder.build();
+    }
+
+    private NetworkRequest.Builder makeNetworkRequestBuilderFromJson(JSONObject configJson)
+            throws JSONException {
         NetworkRequest.Builder builder = new NetworkRequest.Builder();
 
         if (configJson.has("ClearCapabilities")) {
@@ -490,13 +508,7 @@ public class ConnectivityManagerFacade extends RpcReceiver {
             builder.setLinkDownstreamBandwidthKbps(configJson.getInt(
                     "LinkDownstreamBandwidthKbps"));
         }
-        if (configJson.has("NetworkSpecifier")) {
-            Log.d("build NetworkSpecifier" + configJson.getString("NetworkSpecifier"));
-            builder.setNetworkSpecifier(configJson.getString(
-                    "NetworkSpecifier"));
-        }
-        NetworkRequest networkRequest = builder.build();
-        return networkRequest;
+        return builder;
     }
 
     @Rpc(description = "register a network callback")
@@ -546,16 +558,7 @@ public class ConnectivityManagerFacade extends RpcReceiver {
     @Rpc(description = "Request a Wi-Fi Aware network")
     public String connectivityRequestWifiAwareNetwork(@RpcParameter(name = "configJson")
             JSONObject configJson) throws JSONException {
-        NetworkRequest networkRequest = buildNetworkRequestFromJson(configJson);
-        if (networkRequest.networkCapabilities.getNetworkSpecifier() instanceof
-                StringNetworkSpecifier) {
-            String ns =
-                    ((StringNetworkSpecifier) networkRequest.networkCapabilities
-                            .getNetworkSpecifier()).specifier;
-            JSONObject j = new JSONObject(ns);
-            networkRequest.networkCapabilities.setNetworkSpecifier(
-                    WifiAwareManagerFacade.getNetworkSpecifier(j));
-        }
+        NetworkRequest networkRequest = buildWifiAwareNetworkRequestFromJson(configJson);
         mNetworkCallback = new NetworkCallback(NetworkCallback.EVENT_ALL);
         mManager.requestNetwork(networkRequest, mNetworkCallback);
         String key = mNetworkCallback.mId;
