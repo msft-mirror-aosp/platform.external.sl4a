@@ -32,6 +32,7 @@ java_library {
         "android-common",
         "sl4a.Utils",
         "junit",
+        "modules-utils-build",
     ],
 
     sdk_version: "core_platform",
