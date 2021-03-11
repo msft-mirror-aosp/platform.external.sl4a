@@ -73,6 +73,7 @@ import android.util.Base64;
 import android.util.SparseArray;
 
 import com.android.internal.annotations.GuardedBy;
+import com.android.modules.utils.build.SdkLevel;
 
 import com.googlecode.android_scripting.Log;
 import com.googlecode.android_scripting.facade.EventFacade;
@@ -381,10 +382,18 @@ public class WifiManagerFacade extends RpcReceiver {
     public class WifiStateChangeReceiver extends BroadcastReceiver {
         String mCachedWifiInfo = "";
 
-        // When a peer to peer request is active, WifiManager.getConnectionInfo() returns
-        // the peer to peer connection details. Hence use networking API's to retrieve the
-        // internet connection details.
+        /**
+         * When a peer to peer request is active, WifiManager.getConnectionInfo() returns
+         * the peer to peer connection details. Hence use networking API's to retrieve the
+         * internet connection details.
+         *
+         * But on Android R, we will need to fallback to the legacy getConnectionInfo() API since
+         * WifiInfo doesn't implement TransportInfo.
+         */
         private WifiInfo getInternetConnectivityWifiInfo() {
+            if (!SdkLevel.isAtLeastS()) {
+                return mWifi.getConnectionInfo();
+            }
             for (Network network : mCm.getAllNetworks())  {
                 NetworkCapabilities netCap = mCm.getNetworkCapabilities(network);
                 if (netCap.hasTransport(TRANSPORT_WIFI)
