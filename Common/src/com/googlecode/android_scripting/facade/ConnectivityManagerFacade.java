@@ -156,7 +156,7 @@ public class ConnectivityManagerFacade extends RpcReceiver {
         private long mCreateTimestamp;
 
         public NetworkCallback(int events) {
-            super();
+            super(ConnectivityManager.NetworkCallback.FLAG_INCLUDE_LOCATION_INFO);
             mEvents = events;
             mId = this.toString();
             mCreateTimestamp = System.currentTimeMillis();
