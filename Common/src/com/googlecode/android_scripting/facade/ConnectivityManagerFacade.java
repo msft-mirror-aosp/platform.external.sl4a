@@ -1088,5 +1088,8 @@ public class ConnectivityManagerFacade extends RpcReceiver {
     @Override
     public void shutdown() {
         connectivityStopTrackingConnectivityStateChange();
+        for (NetworkCallback networkCallback : mNetworkCallbackMap.values()) {
+            mManager.unregisterNetworkCallback(networkCallback);
+        }
     }
 }
