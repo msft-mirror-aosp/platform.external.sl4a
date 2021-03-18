@@ -2000,15 +2000,11 @@ public class WifiManagerFacade extends RpcReceiver {
         }
 
         @Override
-        public void onBootstrapUriGenerated(String uri) {
+        public void onBootstrapUriGenerated(@NonNull Uri dppUri) {
             Bundle msg = new Bundle();
             msg.putString("Type", "onBootstrapUriGenerated");
-            if (uri != null) {
-                Log.d("onBootstrapUriGenerated uri: " + uri);
-                msg.putString("generatedUri", uri);
-            } else {
-                msg.putString("generatedUri", "");
-            }
+            Log.d("onBootstrapUriGenerated uri: " + dppUri.toString());
+            msg.putString("generatedUri", dppUri.toString());
             Log.d("Posting event: onBootstrapUriGenerated");
             mEventFacade.postEvent(EASY_CONNECT_CALLBACK_TAG, msg);
         }
