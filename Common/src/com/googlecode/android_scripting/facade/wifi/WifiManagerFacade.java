@@ -429,6 +429,8 @@ public class WifiManagerFacade extends RpcReceiver {
             } catch (InterruptedException e) {
                 Log.e("Waiting for onAvailable failed", e);
                 return null;
+            } finally {
+                mCm.unregisterNetworkCallback(networkCallback);
             }
         }
 
