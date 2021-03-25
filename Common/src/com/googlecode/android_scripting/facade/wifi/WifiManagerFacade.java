@@ -1787,13 +1787,13 @@ public class WifiManagerFacade extends RpcReceiver {
     }
 
     @Rpc(description = "Restart the WiFi subsystem.")
-    public void restartWifiSubsystem(@RpcParameter(name = "reason") String reason) {
+    public void restartWifiSubsystem() {
         if (mSubsystemRestartTrackingCallback == null) {
             // one-time registration if needed
             mSubsystemRestartTrackingCallback = new SubsystemRestartTrackingCallbackFacade(
                     mEventFacade);
         }
-        mWifi.restartWifiSubsystem(reason);
+        mWifi.restartWifiSubsystem();
     }
 
     @Rpc(description = "Toggle Wifi scan always available on and off.", returns = "True if Wifi scan is always available.")
