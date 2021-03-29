@@ -1505,6 +1505,17 @@ public class WifiManagerFacade extends RpcReceiver {
     public Boolean wifiIsEnhancedOpenSupported() {
         return mWifi.isEnhancedOpenSupported();
     }
+
+    /**
+     * @return true if this device supports Wi-Fi Device Provisioning Protocol (Easy-connect)
+     * Enrollee Responder mode
+     */
+    @Rpc(description = "Check if Easy Connect (DPP) Enrollee responder mode is supported "
+            + "on this device.")
+    public Boolean wifiIsEasyConnectEnrolleeResponderModeSupported() {
+        return mWifi.isEasyConnectEnrolleeResponderModeSupported();
+    }
+
     /**
      * @return true if this device supports Wi-Fi Device Provisioning Protocol (Easy-connect)
      */
