@@ -32,7 +32,6 @@ import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.ConnectivityManager.NetworkCallback;
 import android.net.DhcpInfo;
-import android.net.LinkProperties;
 import android.net.MacAddress;
 import android.net.Network;
 import android.net.NetworkCapabilities;
@@ -400,7 +399,7 @@ public class WifiManagerFacade extends RpcReceiver {
             }
             // TODO (b/156867433): We need a location sensitive synchronous API proposed
             // in aosp/1629501.
-            final CountDownLatch waitForAvailable = new CountDownLatch(1);
+            final CountDownLatch waitForNetwork = new CountDownLatch(1);
             final class AnswerBox {
                 public WifiInfo wifiInfo;
             }
@@ -408,11 +407,10 @@ public class WifiManagerFacade extends RpcReceiver {
             final NetworkCallback networkCallback =
                     new NetworkCallback(NetworkCallback.FLAG_INCLUDE_LOCATION_INFO) {
                 @Override
-                public void onAvailable(@NonNull Network network,
-                        @NonNull NetworkCapabilities networkCapabilities,
-                        @NonNull LinkProperties linkProperties, boolean blocked) {
+                public void onCapabilitiesChanged(@NonNull Network network,
+                        @NonNull NetworkCapabilities networkCapabilities) {
                     answerBox.wifiInfo = (WifiInfo) networkCapabilities.getTransportInfo();
-                    waitForAvailable.countDown();
+                    waitForNetwork.countDown();
                 }
             };
             mCm.registerNetworkCallback(
@@ -421,8 +419,8 @@ public class WifiManagerFacade extends RpcReceiver {
                             .addCapability(NET_CAPABILITY_INTERNET)
                             .build(), networkCallback);
             try {
-                if (!waitForAvailable.await(5, TimeUnit.SECONDS)) {
-                    Log.e("Timed out waiting for onAvailable");
+                if (!waitForNetwork.await(5, TimeUnit.SECONDS)) {
+                    Log.e("Timed out waiting for network to connect");
                     return null;
                 }
                 return answerBox.wifiInfo;
@@ -1505,6 +1503,17 @@ public class WifiManagerFacade extends RpcReceiver {
     public Boolean wifiIsEnhancedOpenSupported() {
         return mWifi.isEnhancedOpenSupported();
     }
+
+    /**
+     * @return true if this device supports Wi-Fi Device Provisioning Protocol (Easy-connect)
+     * Enrollee Responder mode
+     */
+    @Rpc(description = "Check if Easy Connect (DPP) Enrollee responder mode is supported "
+            + "on this device.")
+    public Boolean wifiIsEasyConnectEnrolleeResponderModeSupported() {
+        return mWifi.isEasyConnectEnrolleeResponderModeSupported();
+    }
+
     /**
      * @return true if this device supports Wi-Fi Device Provisioning Protocol (Easy-connect)
      */
@@ -1787,13 +1796,13 @@ public class WifiManagerFacade extends RpcReceiver {
     }
 
     @Rpc(description = "Restart the WiFi subsystem.")
-    public void restartWifiSubsystem(@RpcParameter(name = "reason") String reason) {
+    public void restartWifiSubsystem() {
         if (mSubsystemRestartTrackingCallback == null) {
             // one-time registration if needed
             mSubsystemRestartTrackingCallback = new SubsystemRestartTrackingCallbackFacade(
                     mEventFacade);
         }
-        mWifi.restartWifiSubsystem(reason);
+        mWifi.restartWifiSubsystem();
     }
 
     @Rpc(description = "Toggle Wifi scan always available on and off.", returns = "True if Wifi scan is always available.")
