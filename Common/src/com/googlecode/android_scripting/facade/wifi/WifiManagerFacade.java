@@ -109,11 +109,10 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -2141,19 +2140,18 @@ public class WifiManagerFacade extends RpcReceiver {
         } else {
             return null;
         }
-        final CoexUnsafeChannel unsafeChannel = new CoexUnsafeChannel(band, j.getInt("channel"));
         if (j.has("powerCapDbm")) {
-            unsafeChannel.setPowerCapDbm(j.getInt("powerCapDbm"));
+            return new CoexUnsafeChannel(band, j.getInt("channel"), j.getInt("powerCapDbm"));
         }
-        return unsafeChannel;
+        return new CoexUnsafeChannel(band, j.getInt("channel"));
     }
 
-    private Set<CoexUnsafeChannel> genCoexUnsafeChannels(
+    private List<CoexUnsafeChannel> genCoexUnsafeChannels(
             JSONArray jsonCoexUnsafeChannelsArray) throws JSONException {
         if (jsonCoexUnsafeChannelsArray == null) {
-            return null;
+            return Collections.emptyList();
         }
-        Set<CoexUnsafeChannel> unsafeChannels = new HashSet<>();
+        List<CoexUnsafeChannel> unsafeChannels = new ArrayList<>();
         for (int i = 0; i < jsonCoexUnsafeChannelsArray.length(); i++) {
             unsafeChannels.add(
                     genCoexUnsafeChannel(jsonCoexUnsafeChannelsArray.getJSONObject(i)));
@@ -2190,7 +2188,7 @@ public class WifiManagerFacade extends RpcReceiver {
      *         (Optional) "powerCapDbm" : <Power Cap in Dbm>
      *     }
      */
-    private JSONArray coexUnsafeChannelsToJson(Set<CoexUnsafeChannel> unsafeChannels)
+    private JSONArray coexUnsafeChannelsToJson(List<CoexUnsafeChannel> unsafeChannels)
             throws JSONException {
         final JSONArray jsonCoexUnsafeChannelArray = new JSONArray();
         for (CoexUnsafeChannel unsafeChannel : unsafeChannels) {
@@ -2205,8 +2203,9 @@ public class WifiManagerFacade extends RpcReceiver {
             final JSONObject jsonUnsafeChannel = new JSONObject();
             jsonUnsafeChannel.put("band", jsonBand);
             jsonUnsafeChannel.put("channel", unsafeChannel.getChannel());
-            if (unsafeChannel.isPowerCapAvailable()) {
-                jsonUnsafeChannel.put("powerCapDbm", unsafeChannel.getPowerCapDbm());
+            final int powerCapDbm = unsafeChannel.getPowerCapDbm();
+            if (powerCapDbm != CoexUnsafeChannel.POWER_CAP_NONE) {
+                jsonUnsafeChannel.put("powerCapDbm", powerCapDbm);
             }
             jsonCoexUnsafeChannelArray.put(jsonUnsafeChannel);
         }
@@ -2232,42 +2231,72 @@ public class WifiManagerFacade extends RpcReceiver {
     }
 
     /**
+     * Returns whether the default coex algorithm is enabled or not
+     *
+     * @return {@code true} if the default coex algorithm is enabled, {@code false} otherwise.
+     */
+    @Rpc(description = "Returns whether the default coex algorithm is enabled or not")
+    public boolean wifiIsDefaultCoexAlgorithmEnabled() {
+        if (!SdkLevel.isAtLeastS()) {
+            return false;
+        }
+        return mWifi.isDefaultCoexAlgorithmEnabled();
+    }
+
+    /**
      * Sets the active list of unsafe channels to avoid for coex and the restricted Wifi interfaces.
      *
      * @param unsafeChannels JSONArray representation of {@link CoexUnsafeChannel}.
-     *                       See {@link #coexUnsafeChannelsToJson(Set)}.
+     *                       See {@link #coexUnsafeChannelsToJson(List)}.
      * @param restrictions JSONArray representation of coex restrictions.
      *                     See {@link #coexRestrictionsToJson(int)}.
-     * @return {@code true} if the API is enabled (default algorithm disabled), {@code false} if the
-     *     API is disabled (default algorithm enabled).
      * @throws JSONException
      */
-    @Rpc(description = "Set the unsafe channels to avoid for coex. Returns true if API is enabled")
-    public Boolean wifiSetCoexUnsafeChannels(
+    @Rpc(description = "Set the unsafe channels to avoid for coex")
+    public void wifiSetCoexUnsafeChannels(
             @RpcParameter(name = "unsafeChannels") JSONArray unsafeChannels,
             @RpcParameter(name = "restrictions") JSONArray restrictions) throws JSONException {
+        if (!SdkLevel.isAtLeastS()) {
+            return;
+        }
         mWifi.setCoexUnsafeChannels(
                 genCoexUnsafeChannels(unsafeChannels), genCoexRestrictions(restrictions));
-        return !mWifi.isDefaultCoexAlgorithmEnabled();
+    }
+
+    private final WifiManager.CoexCallback mCoexCallback =
+            new WifiManager.CoexCallback() {
+                private static final String EVENT_TAG = mEventType + "CoexCallback";
+
+                @Override
+                public void onCoexUnsafeChannelsChanged(
+                        @NonNull List<CoexUnsafeChannel> unsafeChannels, int restrictions) {
+                    Bundle event = new Bundle();
+                    try {
+                        event.putString("KEY_COEX_UNSAFE_CHANNELS",
+                                coexUnsafeChannelsToJson(unsafeChannels).toString());
+                        event.putString("KEY_COEX_RESTRICTIONS",
+                                coexRestrictionsToJson(restrictions).toString());
+                        mEventFacade.postEvent(EVENT_TAG + "#onCoexUnsafeChannelsChanged", event);
+                    } catch (JSONException e) {
+                        Log.e("Failed to post event for onCoexUnsafeChannelsChanged: " + e);
+                    }
+                }
+            };
+
+    /**
+     * Registers a coex callback to start receiving coex update events.
+     */
+    @Rpc(description = "Registers a coex callback to start receiving coex update events")
+    public void wifiRegisterCoexCallback() {
+        mWifi.registerCoexCallback(
+                new HandlerExecutor(mCallbackHandlerThread.getThreadHandler()), mCoexCallback);
     }
 
     /**
-     * Get active list of unsafe channels to avoid for coex.
-     * @return JSONArray representation of {@link CoexUnsafeChannel}.
-     *     See {@link #coexUnsafeChannelsToJson(Set)}.
+     * Unregisters the coex callback to stop receiving coex update events.
      */
-    @Rpc(description = "Returns the active list of unsafe channels to avoid for coex")
-    public JSONArray wifiGetCoexUnsafeChannels() throws JSONException {
-        return coexUnsafeChannelsToJson(mWifi.getCoexUnsafeChannels());
-    }
-
-    /**
-     * Get the wifi interfaces to restrict from unsafe channels
-     * @return JSONArray representation of coex restrictions.
-     *     See {@link #coexRestrictionsToJson(int)}.
-     */
-    @Rpc(description = "Returns the wifi interfaces to restrict from unsafe channels")
-    public JSONArray wifiGetCoexRestrictions() {
-        return coexRestrictionsToJson(mWifi.getCoexRestrictions());
+    @Rpc(description = "Unregisters the coex callback to stop receiving coex update events")
+    public void wifiUnregisterCoexCallback() {
+        mWifi.unregisterCoexCallback(mCoexCallback);
     }
 }
