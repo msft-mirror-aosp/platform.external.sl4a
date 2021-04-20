@@ -43,6 +43,8 @@ import android.os.Bundle;
 import android.os.RemoteException;
 import android.provider.Settings;
 
+import com.android.modules.utils.build.SdkLevel;
+
 import com.google.common.io.ByteStreams;
 import com.googlecode.android_scripting.FileUtils;
 import com.googlecode.android_scripting.Log;
@@ -127,7 +129,19 @@ public class ConnectivityManagerFacade extends RpcReceiver {
         }
     }
 
-    class NetworkCallback extends ConnectivityManager.NetworkCallback {
+    /**
+     * Used to dispatch to a different constructor depending on R or S, since
+     * {@link ConnectivityManager.NetworkCallback#NetworkCallback(int)} was added in S.
+     */
+    private NetworkCallback newNetworkCallback(int events) {
+        if (SdkLevel.isAtLeastS()) {
+            return new NetworkCallback(events);
+        } else {
+            return new NetworkCallback(events, false);
+        }
+    }
+
+    private class NetworkCallback extends ConnectivityManager.NetworkCallback {
         public static final int EVENT_INVALID = -1;
         public static final int EVENT_NONE = 0;
         public static final int EVENT_PRECHECK = 1 << 0;
@@ -140,23 +154,39 @@ public class ConnectivityManagerFacade extends RpcReceiver {
         public static final int EVENT_RESUMED = 1 << 7;
         public static final int EVENT_LINK_PROPERTIES_CHANGED = 1 << 8;
         public static final int EVENT_BLOCKED_STATUS_CHANGED = 1 << 9;
-        public static final int EVENT_ALL = EVENT_PRECHECK |
-                EVENT_AVAILABLE |
-                EVENT_LOSING |
-                EVENT_LOST |
-                EVENT_UNAVAILABLE |
-                EVENT_CAPABILITIES_CHANGED |
-                EVENT_SUSPENDED |
-                EVENT_RESUMED |
-                EVENT_LINK_PROPERTIES_CHANGED
-                | EVENT_BLOCKED_STATUS_CHANGED;
+        public static final int EVENT_ALL =
+                EVENT_PRECHECK
+                        | EVENT_AVAILABLE
+                        | EVENT_LOSING
+                        | EVENT_LOST
+                        | EVENT_UNAVAILABLE
+                        | EVENT_CAPABILITIES_CHANGED
+                        | EVENT_SUSPENDED
+                        | EVENT_RESUMED
+                        | EVENT_LINK_PROPERTIES_CHANGED
+                        | EVENT_BLOCKED_STATUS_CHANGED;
 
         private int mEvents;
         public String mId;
         private long mCreateTimestamp;
 
-        public NetworkCallback(int events) {
+        /** Called in >= Android S where super(int) does exist. */
+        private NetworkCallback(int events) {
             super(ConnectivityManager.NetworkCallback.FLAG_INCLUDE_LOCATION_INFO);
+            init(events);
+        }
+
+        /**
+         * Called in <= Android R where super(int) doesn't exist.
+         * @param ignore placeholder argument to differentiate between R and S constructors' method
+         *              signatures.
+         */
+        private NetworkCallback(int events, boolean ignore) {
+            super();
+            init(events);
+        }
+
+        private void init(int events) {
             mEvents = events;
             mId = this.toString();
             mCreateTimestamp = System.currentTimeMillis();
@@ -436,7 +466,7 @@ public class ConnectivityManagerFacade extends RpcReceiver {
         builder.setSignalStrength((int) rssi);
         builder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
         NetworkRequest networkRequest = builder.build();
-        mNetworkCallback = new NetworkCallback(NetworkCallback.EVENT_ALL);
+        mNetworkCallback = newNetworkCallback(NetworkCallback.EVENT_ALL);
         mManager.registerNetworkCallback(networkRequest, mNetworkCallback);
         String key = mNetworkCallback.mId;
         mNetworkCallbackMap.put(key, mNetworkCallback);
@@ -515,7 +545,7 @@ public class ConnectivityManagerFacade extends RpcReceiver {
     public String connectivityRegisterNetworkCallback(@RpcParameter(name = "configJson")
     JSONObject configJson) throws JSONException {
         NetworkRequest networkRequest = buildNetworkRequestFromJson(configJson);
-        mNetworkCallback = new NetworkCallback(NetworkCallback.EVENT_ALL);
+        mNetworkCallback = newNetworkCallback(NetworkCallback.EVENT_ALL);
         mManager.registerNetworkCallback(networkRequest, mNetworkCallback);
         String key = mNetworkCallback.mId;
         mNetworkCallbackMap.put(key, mNetworkCallback);
@@ -537,7 +567,7 @@ public class ConnectivityManagerFacade extends RpcReceiver {
 
     @Rpc(description = "register a default network callback")
     public String connectivityRegisterDefaultNetworkCallback() {
-        mNetworkCallback = new NetworkCallback(NetworkCallback.EVENT_ALL);
+        mNetworkCallback = newNetworkCallback(NetworkCallback.EVENT_ALL);
         mManager.registerDefaultNetworkCallback(mNetworkCallback);
         String key = mNetworkCallback.mId;
         mNetworkCallbackMap.put(key, mNetworkCallback);
@@ -548,7 +578,7 @@ public class ConnectivityManagerFacade extends RpcReceiver {
     public String connectivityRequestNetwork(@RpcParameter(name = "configJson")
     JSONObject configJson) throws JSONException {
         NetworkRequest networkRequest = buildNetworkRequestFromJson(configJson);
-        mNetworkCallback = new NetworkCallback(NetworkCallback.EVENT_ALL);
+        mNetworkCallback = newNetworkCallback(NetworkCallback.EVENT_ALL);
         mManager.requestNetwork(networkRequest, mNetworkCallback);
         String key = mNetworkCallback.mId;
         mNetworkCallbackMap.put(key, mNetworkCallback);
@@ -559,7 +589,7 @@ public class ConnectivityManagerFacade extends RpcReceiver {
     public String connectivityRequestWifiAwareNetwork(@RpcParameter(name = "configJson")
             JSONObject configJson) throws JSONException {
         NetworkRequest networkRequest = buildWifiAwareNetworkRequestFromJson(configJson);
-        mNetworkCallback = new NetworkCallback(NetworkCallback.EVENT_ALL);
+        mNetworkCallback = newNetworkCallback(NetworkCallback.EVENT_ALL);
         mManager.requestNetwork(networkRequest, mNetworkCallback);
         String key = mNetworkCallback.mId;
         mNetworkCallbackMap.put(key, mNetworkCallback);
@@ -583,7 +613,7 @@ public class ConnectivityManagerFacade extends RpcReceiver {
                 .addTransportType(TRANSPORT_WIFI)
                 .setNetworkSpecifier(WifiManagerFacade.genWifiNetworkSpecifier(wNs))
                 .build();
-        mNetworkCallback = new NetworkCallback(NetworkCallback.EVENT_ALL);
+        mNetworkCallback = newNetworkCallback(NetworkCallback.EVENT_ALL);
         if (timeoutInMs != 0) {
             mManager.requestNetwork(networkRequest, mNetworkCallback, timeoutInMs);
         } else {
