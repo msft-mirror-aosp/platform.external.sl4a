@@ -74,6 +74,8 @@ import android.provider.Settings.SettingNotFoundException;
 import android.text.TextUtils;
 import android.util.Base64;
 import android.util.SparseArray;
+import android.util.SparseIntArray;
+
 
 import com.android.internal.annotations.GuardedBy;
 import com.android.modules.utils.build.SdkLevel;
@@ -241,18 +243,33 @@ public class WifiManagerFacade extends RpcReceiver {
 
         @Override
         public void onConnectedClientsChanged(List<WifiClient> clients) {
-            ArrayList<String> macAddresses = new ArrayList<>();
-            clients.forEach(x -> macAddresses.add(x.getMacAddress().toString()));
+            ArrayList<MacAddress> macAddresses = new ArrayList<>();
+            clients.forEach(x -> macAddresses.add(x.getMacAddress()));
             Bundle msg = new Bundle();
             msg.putInt("NumClients", clients.size());
-            msg.putStringArrayList("MacAddresses", macAddresses);
+            msg.putParcelableArrayList("MacAddresses", macAddresses);
             mEventFacade.postEvent(mEventStr + "OnNumClientsChanged", msg);
             mEventFacade.postEvent(mEventStr + "OnConnectedClientsChanged", clients);
         }
 
         @Override
+        public void onConnectedClientsChanged(SoftApInfo info, List<WifiClient> clients) {
+            ArrayList<MacAddress> macAddresses = new ArrayList<>();
+            clients.forEach(x -> macAddresses.add(x.getMacAddress()));
+            Bundle msg = new Bundle();
+            msg.putParcelable("Info", info);
+            msg.putParcelableArrayList("ClientsMacAddress", macAddresses);
+            mEventFacade.postEvent(mEventStr + "OnConnectedClientsChangedWithInfo", msg);
+        }
+
+        @Override
         public void onInfoChanged(SoftApInfo softApInfo) {
             mEventFacade.postEvent(mEventStr + "OnInfoChanged", softApInfo);
+        }
+
+        @Override
+        public void onInfoChanged(List<SoftApInfo> infos) {
+            mEventFacade.postEvent(mEventStr + "OnInfoListChanged", infos);
         }
 
         @Override
@@ -1372,6 +1389,30 @@ public class WifiManagerFacade extends RpcReceiver {
         return mWifi.isVerboseLoggingEnabled() ? 1 : 0;
     }
 
+    /**
+     * Query whether or not the device supports concurrency of Station (STA) + multiple access
+     * points (AP) (where the APs bridged together).
+     *
+     * @return true if this device supports concurrency of STA + multiple APs which are bridged
+     *         together, false otherwise.
+     */
+    @Rpc(description = "true if this adapter supports STA + bridged Soft AP concurrency.")
+    public Boolean wifiIsStaBridgedApConcurrencySupported() {
+        return mWifi.isStaBridgedApConcurrencySupported();
+    }
+
+    /**
+     * Query whether or not the device supports multiple Access point (AP) which are bridged
+     * together.
+     *
+     * @return true if this device supports concurrency of multiple AP which bridged together,
+     *         false otherwise.
+     */
+    @Rpc(description = "true if this adapter supports bridged Soft AP concurrency.")
+    public Boolean wifiIsBridgedApConcurrencySupported() {
+        return mWifi.isBridgedApConcurrencySupported();
+    }
+
     @Rpc(description = "true if this adapter supports 5 GHz band.")
     public Boolean wifiIs5GHzBandSupported() {
         return mWifi.is5GHzBandSupported();
@@ -1564,6 +1605,30 @@ public class WifiManagerFacade extends RpcReceiver {
         return mWifi.removeNetwork(netId);
     }
 
+    private int getApBandFromChannelFrequency(int freq) {
+        if (ScanResult.is24GHz(freq)) {
+            return SoftApConfiguration.BAND_2GHZ;
+        } else if (ScanResult.is5GHz(freq)) {
+            return SoftApConfiguration.BAND_5GHZ;
+        } else if (ScanResult.is6GHz(freq)) {
+            return SoftApConfiguration.BAND_6GHZ;
+        } else if (ScanResult.is60GHz(freq)) {
+            return SoftApConfiguration.BAND_60GHZ;
+        }
+        return -1;
+    }
+
+    private int[] convertJSONArrayToIntArray(JSONArray jArray) throws JSONException {
+        if (jArray == null) {
+            return null;
+        }
+        int[] iArray = new int[jArray.length()];
+        for (int i = 0; i < jArray.length(); i++) {
+            iArray[i] = jArray.getInt(i);
+        }
+        return iArray;
+    }
+
     private SoftApConfiguration createSoftApConfiguration(JSONObject configJson)
             throws JSONException {
         if (configJson == null) {
@@ -1634,10 +1699,45 @@ public class WifiManagerFacade extends RpcReceiver {
             for (int j = 0; j < blockedList.length(); j++) {
                 blockedClientList.add(MacAddress.fromString(blockedList.getString(j)));
             }
-
         }
+
         configBuilder.setAllowedClientList(allowedClientList);
         configBuilder.setBlockedClientList(blockedClientList);
+
+        if (configJson.has("apBands")) {
+            JSONArray jBands = configJson.getJSONArray("apBands");
+            int[] bands = convertJSONArrayToIntArray(jBands);
+            configBuilder.setBands(bands);
+        }
+
+        if (configJson.has("apChannelFrequencies")) {
+            JSONArray jChannelFrequencys = configJson.getJSONArray("apChannelFrequencies");
+            int[] channelFrequencies = convertJSONArrayToIntArray(jChannelFrequencys);
+            SparseIntArray channels = new SparseIntArray();
+            for (int channelFrequency : channelFrequencies) {
+                if (channelFrequency != 0) {
+                    channels.put(getApBandFromChannelFrequency(channelFrequency),
+                            ScanResult.convertFrequencyMhzToChannelIfSupported(channelFrequency));
+                }
+            }
+            if (channels.size() != 0) {
+                configBuilder.setChannels(channels);
+            }
+        }
+
+        if (configJson.has("MacRandomizationSetting")) {
+            configBuilder.setMacRandomizationSetting(configJson.getInt("MacRandomizationSetting"));
+        }
+
+        if (configJson.has("BridgedModeOpportunisticShutdownEnabled")) {
+            configBuilder.setBridgedModeOpportunisticShutdownEnabled(
+                    configJson.getBoolean("BridgedModeOpportunisticShutdownEnabled"));
+        }
+
+        if (configJson.has("Ieee80211axEnabled")) {
+            configBuilder.setIeee80211axEnabled(configJson.getBoolean("Ieee80211axEnabled"));
+        }
+
         return configBuilder.build();
     }
 
