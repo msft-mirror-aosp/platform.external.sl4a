@@ -47,5 +47,8 @@ java_library {
     srcs: [
         "src/com/googlecode/android_scripting/**/*.java",
         "src/org/apache/commons/codec/**/*.java",
+        ":cellbroadcast-shared-with-sl4a",
+        ":cellbroadcast-util-shared-srcs",
+        ":cellbroadcast-constants-shared-srcs",
     ],
 }
