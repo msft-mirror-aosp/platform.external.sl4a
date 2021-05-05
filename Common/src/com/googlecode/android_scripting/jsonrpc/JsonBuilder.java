@@ -50,6 +50,7 @@ import android.net.wifi.WifiClient;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiScanner.ScanData;
 import android.net.wifi.WpsInfo;
 import android.net.wifi.aware.WifiAwareNetworkInfo;
@@ -95,6 +96,7 @@ import android.telephony.gsm.GsmCellLocation;
 import android.util.Base64;
 import android.util.DisplayMetrics;
 import android.util.SparseArray;
+import android.util.SparseIntArray;
 
 import com.android.internal.net.LegacyVpnInfo;
 
@@ -1105,6 +1107,22 @@ public class JsonBuilder {
         return result;
     }
 
+    private static @WifiScanner.WifiBand int apBand2wifiScannerBand(
+            @SoftApConfiguration.BandType int band) {
+        switch(band) {
+            case SoftApConfiguration.BAND_2GHZ:
+                return WifiScanner.WIFI_BAND_24_GHZ;
+            case SoftApConfiguration.BAND_5GHZ:
+                return WifiScanner.WIFI_BAND_5_GHZ;
+            case SoftApConfiguration.BAND_6GHZ:
+                return WifiScanner.WIFI_BAND_6_GHZ;
+            case SoftApConfiguration.BAND_60GHZ:
+                return WifiScanner.WIFI_BAND_60_GHZ;
+            default:
+                return WifiScanner.WIFI_BAND_UNSPECIFIED;
+        }
+    }
+
     private static Object buildSoftApConfiguration(SoftApConfiguration data)
             throws JSONException {
         JSONObject config = new JSONObject();
@@ -1132,6 +1150,24 @@ public class JsonBuilder {
         config.put("ClientControlByUserEnabled", data.isClientControlByUserEnabled());
         config.put("AllowedClientList", build(data.getAllowedClientList()));
         config.put("BlockedClientList", build(data.getBlockedClientList()));
+        config.put("apBands", buildJSONArray(
+                IntStream.of(data.getBands()).boxed().toArray(Integer[]::new)));
+        SparseIntArray channels = data.getChannels();
+        int[] channelFrequencies = new int[channels.size()];
+        for (int i = 0; i < channels.size(); i++) {
+            int channel = channels.valueAt(i);
+            channelFrequencies[i] = channel == 0 ? 0
+                    : ScanResult.convertChannelToFrequencyMhzIfSupported(
+                    channel, apBand2wifiScannerBand(channels.keyAt(i)));
+        }
+        if (channelFrequencies.length != 0) {
+            config.put("apChannelFrequencies", build(
+                    IntStream.of(channelFrequencies).boxed().toArray(Integer[]::new)));
+        }
+        config.put("MacRandomizationSetting", build(data.getMacRandomizationSetting()));
+        config.put("BridgedModeOpportunisticShutdownEnabled",
+                build(data.isBridgedModeOpportunisticShutdownEnabled()));
+        config.put("Ieee80211axEnabled", build(data.isIeee80211axEnabled()));
         return config;
     }
 
@@ -1270,6 +1306,29 @@ public class JsonBuilder {
                 SoftApCapability.SOFTAP_FEATURE_CLIENT_FORCE_DISCONNECT));
         info.put("wpa3SaeSupported", data.areFeaturesSupported(
                 SoftApCapability.SOFTAP_FEATURE_WPA3_SAE));
+        info.put("ieee80211axSupported", data.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_IEEE80211_AX));
+        info.put("24gSupported", data.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_24G_SUPPORTED));
+        info.put("5gSupported", data.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_5G_SUPPORTED));
+        info.put("6gSupported", data.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_6G_SUPPORTED));
+        info.put("60gSupported", data.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_60G_SUPPORTED));
+        info.put("supported2GHzChannellist", build(
+                IntStream.of(data.getSupportedChannelList(SoftApConfiguration.BAND_2GHZ))
+                .boxed().toArray(Integer[]::new)));
+
+        info.put("supported5GHzChannellist", build(
+                IntStream.of(data.getSupportedChannelList(SoftApConfiguration.BAND_5GHZ))
+                .boxed().toArray(Integer[]::new)));
+        info.put("supported6GHzChannellist", build(
+                IntStream.of(data.getSupportedChannelList(SoftApConfiguration.BAND_6GHZ))
+                .boxed().toArray(Integer[]::new)));
+        info.put("supported60GHzChannellist", build(
+                IntStream.of(data.getSupportedChannelList(SoftApConfiguration.BAND_60GHZ))
+                .boxed().toArray(Integer[]::new)));
         return info;
     }
 
@@ -1279,6 +1338,9 @@ public class JsonBuilder {
         Log.d("build softAp info.");
         info.put("frequency", data.getFrequency());
         info.put("bandwidth", data.getBandwidth());
+        info.put("wifiStandard", data.getWifiStandard());
+        info.put("autoShutdownTimeoutMillis", data.getAutoShutdownTimeoutMillis());
+        info.put("bssid", data.getBssid());
         return info;
     }
 
