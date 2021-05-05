@@ -24,6 +24,7 @@ import static android.net.wifi.WifiScanner.WIFI_BAND_5_GHZ;
 import static com.googlecode.android_scripting.jsonrpc.JsonBuilder.build;
 
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -152,6 +153,8 @@ public class WifiManagerFacade extends RpcReceiver {
     @GuardedBy("mCallbackLock")
     private NetworkRequestUserSelectionCallback mNetworkRequestUserSelectionCallback;
     private final SparseArray<SoftApCallbackImp> mSoftapCallbacks;
+    // This is null if SdkLevel is not at least S
+    @Nullable private WifiManager.CoexCallback mCoexCallback;
 
     private final BroadcastReceiver mTetherStateReceiver = new BroadcastReceiver() {
         @Override
@@ -286,6 +289,31 @@ public class WifiManagerFacade extends RpcReceiver {
         }
     };
 
+    private static class CoexCallbackImpl extends WifiManager.CoexCallback {
+        private final EventFacade mEventFacade;
+        private final String mEventStr;
+
+        CoexCallbackImpl(EventFacade eventFacade) {
+            mEventFacade = eventFacade;
+            mEventStr = mEventType + "CoexCallback";
+        }
+
+        @Override
+        public void onCoexUnsafeChannelsChanged(
+                @NonNull List<CoexUnsafeChannel> unsafeChannels, int restrictions) {
+            Bundle event = new Bundle();
+            try {
+                event.putString("KEY_COEX_UNSAFE_CHANNELS",
+                        coexUnsafeChannelsToJson(unsafeChannels).toString());
+                event.putString("KEY_COEX_RESTRICTIONS",
+                        coexRestrictionsToJson(restrictions).toString());
+                mEventFacade.postEvent(mEventStr + "#onCoexUnsafeChannelsChanged", event);
+            } catch (JSONException e) {
+                Log.e("Failed to post event for onCoexUnsafeChannelsChanged: " + e);
+            }
+        }
+    };
+
     private WifiLock mLock = null;
     private boolean mIsConnected = false;
 
@@ -319,6 +347,9 @@ public class WifiManagerFacade extends RpcReceiver {
         mTrackingNetworkSuggestionStateChange = false;
         mCallbackHandlerThread.start();
         mSoftapCallbacks = new SparseArray<>();
+        if (SdkLevel.isAtLeastS()) {
+            mCoexCallback = new CoexCallbackImpl(mEventFacade);
+        }
     }
 
     private void makeLock(int wifiMode) {
@@ -2226,7 +2257,7 @@ public class WifiManagerFacade extends RpcReceiver {
         mWifi.allowAutojoinPasspoint(fqdn, enableAutojoin);
     }
 
-    private CoexUnsafeChannel genCoexUnsafeChannel(JSONObject j) throws JSONException {
+    private static CoexUnsafeChannel genCoexUnsafeChannel(JSONObject j) throws JSONException {
         if (j == null || !j.has("band") || !j.has("channel")) {
             return null;
         }
@@ -2246,7 +2277,7 @@ public class WifiManagerFacade extends RpcReceiver {
         return new CoexUnsafeChannel(band, j.getInt("channel"));
     }
 
-    private List<CoexUnsafeChannel> genCoexUnsafeChannels(
+    private static List<CoexUnsafeChannel> genCoexUnsafeChannels(
             JSONArray jsonCoexUnsafeChannelsArray) throws JSONException {
         if (jsonCoexUnsafeChannelsArray == null) {
             return Collections.emptyList();
@@ -2259,7 +2290,8 @@ public class WifiManagerFacade extends RpcReceiver {
         return unsafeChannels;
     }
 
-    private int genCoexRestrictions(JSONArray jsonCoexRestrictionArray) throws JSONException {
+    private static int genCoexRestrictions(JSONArray jsonCoexRestrictionArray)
+            throws JSONException {
         if (jsonCoexRestrictionArray == null) {
             return 0;
         }
@@ -2288,7 +2320,7 @@ public class WifiManagerFacade extends RpcReceiver {
      *         (Optional) "powerCapDbm" : <Power Cap in Dbm>
      *     }
      */
-    private JSONArray coexUnsafeChannelsToJson(List<CoexUnsafeChannel> unsafeChannels)
+    private static JSONArray coexUnsafeChannelsToJson(List<CoexUnsafeChannel> unsafeChannels)
             throws JSONException {
         final JSONArray jsonCoexUnsafeChannelArray = new JSONArray();
         for (CoexUnsafeChannel unsafeChannel : unsafeChannels) {
@@ -2316,7 +2348,7 @@ public class WifiManagerFacade extends RpcReceiver {
      * Converts a coex restriction bitmask {@link WifiManager#getCoexRestrictions()} to a JSON array
      * of possible values "WIFI_DIRECT", "SOFTAP", "WIFI_AWARE".
      */
-    private JSONArray coexRestrictionsToJson(int coexRestrictions) {
+    private static JSONArray coexRestrictionsToJson(int coexRestrictions) {
         final JSONArray jsonCoexRestrictionArray = new JSONArray();
         if ((coexRestrictions & WifiManager.COEX_RESTRICTION_WIFI_DIRECT) != 0) {
             jsonCoexRestrictionArray.put("WIFI_DIRECT");
@@ -2363,31 +2395,14 @@ public class WifiManagerFacade extends RpcReceiver {
                 genCoexUnsafeChannels(unsafeChannels), genCoexRestrictions(restrictions));
     }
 
-    private final WifiManager.CoexCallback mCoexCallback =
-            new WifiManager.CoexCallback() {
-                private static final String EVENT_TAG = mEventType + "CoexCallback";
-
-                @Override
-                public void onCoexUnsafeChannelsChanged(
-                        @NonNull List<CoexUnsafeChannel> unsafeChannels, int restrictions) {
-                    Bundle event = new Bundle();
-                    try {
-                        event.putString("KEY_COEX_UNSAFE_CHANNELS",
-                                coexUnsafeChannelsToJson(unsafeChannels).toString());
-                        event.putString("KEY_COEX_RESTRICTIONS",
-                                coexRestrictionsToJson(restrictions).toString());
-                        mEventFacade.postEvent(EVENT_TAG + "#onCoexUnsafeChannelsChanged", event);
-                    } catch (JSONException e) {
-                        Log.e("Failed to post event for onCoexUnsafeChannelsChanged: " + e);
-                    }
-                }
-            };
-
     /**
      * Registers a coex callback to start receiving coex update events.
      */
     @Rpc(description = "Registers a coex callback to start receiving coex update events")
     public void wifiRegisterCoexCallback() {
+        if (!SdkLevel.isAtLeastS()) {
+            return;
+        }
         mWifi.registerCoexCallback(
                 new HandlerExecutor(mCallbackHandlerThread.getThreadHandler()), mCoexCallback);
     }
@@ -2397,6 +2412,9 @@ public class WifiManagerFacade extends RpcReceiver {
      */
     @Rpc(description = "Unregisters the coex callback to stop receiving coex update events")
     public void wifiUnregisterCoexCallback() {
+        if (!SdkLevel.isAtLeastS()) {
+            return;
+        }
         mWifi.unregisterCoexCallback(mCoexCallback);
     }
 }
