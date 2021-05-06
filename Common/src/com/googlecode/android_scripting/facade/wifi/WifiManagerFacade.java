@@ -24,6 +24,7 @@ import static android.net.wifi.WifiScanner.WIFI_BAND_5_GHZ;
 import static com.googlecode.android_scripting.jsonrpc.JsonBuilder.build;
 
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -74,6 +75,8 @@ import android.provider.Settings.SettingNotFoundException;
 import android.text.TextUtils;
 import android.util.Base64;
 import android.util.SparseArray;
+import android.util.SparseIntArray;
+
 
 import com.android.internal.annotations.GuardedBy;
 import com.android.modules.utils.build.SdkLevel;
@@ -150,6 +153,8 @@ public class WifiManagerFacade extends RpcReceiver {
     @GuardedBy("mCallbackLock")
     private NetworkRequestUserSelectionCallback mNetworkRequestUserSelectionCallback;
     private final SparseArray<SoftApCallbackImp> mSoftapCallbacks;
+    // This is null if SdkLevel is not at least S
+    @Nullable private WifiManager.CoexCallback mCoexCallback;
 
     private final BroadcastReceiver mTetherStateReceiver = new BroadcastReceiver() {
         @Override
@@ -241,18 +246,33 @@ public class WifiManagerFacade extends RpcReceiver {
 
         @Override
         public void onConnectedClientsChanged(List<WifiClient> clients) {
-            ArrayList<String> macAddresses = new ArrayList<>();
-            clients.forEach(x -> macAddresses.add(x.getMacAddress().toString()));
+            ArrayList<MacAddress> macAddresses = new ArrayList<>();
+            clients.forEach(x -> macAddresses.add(x.getMacAddress()));
             Bundle msg = new Bundle();
             msg.putInt("NumClients", clients.size());
-            msg.putStringArrayList("MacAddresses", macAddresses);
+            msg.putParcelableArrayList("MacAddresses", macAddresses);
             mEventFacade.postEvent(mEventStr + "OnNumClientsChanged", msg);
             mEventFacade.postEvent(mEventStr + "OnConnectedClientsChanged", clients);
         }
 
         @Override
+        public void onConnectedClientsChanged(SoftApInfo info, List<WifiClient> clients) {
+            ArrayList<MacAddress> macAddresses = new ArrayList<>();
+            clients.forEach(x -> macAddresses.add(x.getMacAddress()));
+            Bundle msg = new Bundle();
+            msg.putParcelable("Info", info);
+            msg.putParcelableArrayList("ClientsMacAddress", macAddresses);
+            mEventFacade.postEvent(mEventStr + "OnConnectedClientsChangedWithInfo", msg);
+        }
+
+        @Override
         public void onInfoChanged(SoftApInfo softApInfo) {
             mEventFacade.postEvent(mEventStr + "OnInfoChanged", softApInfo);
+        }
+
+        @Override
+        public void onInfoChanged(List<SoftApInfo> infos) {
+            mEventFacade.postEvent(mEventStr + "OnInfoListChanged", infos);
         }
 
         @Override
@@ -266,6 +286,31 @@ public class WifiManagerFacade extends RpcReceiver {
             msg.putString("WifiClient", client.getMacAddress().toString());
             msg.putInt("BlockedReason", blockedReason);
             mEventFacade.postEvent(mEventStr + "OnBlockedClientConnecting", msg);
+        }
+    };
+
+    private static class CoexCallbackImpl extends WifiManager.CoexCallback {
+        private final EventFacade mEventFacade;
+        private final String mEventStr;
+
+        CoexCallbackImpl(EventFacade eventFacade) {
+            mEventFacade = eventFacade;
+            mEventStr = mEventType + "CoexCallback";
+        }
+
+        @Override
+        public void onCoexUnsafeChannelsChanged(
+                @NonNull List<CoexUnsafeChannel> unsafeChannels, int restrictions) {
+            Bundle event = new Bundle();
+            try {
+                event.putString("KEY_COEX_UNSAFE_CHANNELS",
+                        coexUnsafeChannelsToJson(unsafeChannels).toString());
+                event.putString("KEY_COEX_RESTRICTIONS",
+                        coexRestrictionsToJson(restrictions).toString());
+                mEventFacade.postEvent(mEventStr + "#onCoexUnsafeChannelsChanged", event);
+            } catch (JSONException e) {
+                Log.e("Failed to post event for onCoexUnsafeChannelsChanged: " + e);
+            }
         }
     };
 
@@ -302,6 +347,9 @@ public class WifiManagerFacade extends RpcReceiver {
         mTrackingNetworkSuggestionStateChange = false;
         mCallbackHandlerThread.start();
         mSoftapCallbacks = new SparseArray<>();
+        if (SdkLevel.isAtLeastS()) {
+            mCoexCallback = new CoexCallbackImpl(mEventFacade);
+        }
     }
 
     private void makeLock(int wifiMode) {
@@ -1372,6 +1420,30 @@ public class WifiManagerFacade extends RpcReceiver {
         return mWifi.isVerboseLoggingEnabled() ? 1 : 0;
     }
 
+    /**
+     * Query whether or not the device supports concurrency of Station (STA) + multiple access
+     * points (AP) (where the APs bridged together).
+     *
+     * @return true if this device supports concurrency of STA + multiple APs which are bridged
+     *         together, false otherwise.
+     */
+    @Rpc(description = "true if this adapter supports STA + bridged Soft AP concurrency.")
+    public Boolean wifiIsStaBridgedApConcurrencySupported() {
+        return mWifi.isStaBridgedApConcurrencySupported();
+    }
+
+    /**
+     * Query whether or not the device supports multiple Access point (AP) which are bridged
+     * together.
+     *
+     * @return true if this device supports concurrency of multiple AP which bridged together,
+     *         false otherwise.
+     */
+    @Rpc(description = "true if this adapter supports bridged Soft AP concurrency.")
+    public Boolean wifiIsBridgedApConcurrencySupported() {
+        return mWifi.isBridgedApConcurrencySupported();
+    }
+
     @Rpc(description = "true if this adapter supports 5 GHz band.")
     public Boolean wifiIs5GHzBandSupported() {
         return mWifi.is5GHzBandSupported();
@@ -1564,6 +1636,30 @@ public class WifiManagerFacade extends RpcReceiver {
         return mWifi.removeNetwork(netId);
     }
 
+    private int getApBandFromChannelFrequency(int freq) {
+        if (ScanResult.is24GHz(freq)) {
+            return SoftApConfiguration.BAND_2GHZ;
+        } else if (ScanResult.is5GHz(freq)) {
+            return SoftApConfiguration.BAND_5GHZ;
+        } else if (ScanResult.is6GHz(freq)) {
+            return SoftApConfiguration.BAND_6GHZ;
+        } else if (ScanResult.is60GHz(freq)) {
+            return SoftApConfiguration.BAND_60GHZ;
+        }
+        return -1;
+    }
+
+    private int[] convertJSONArrayToIntArray(JSONArray jArray) throws JSONException {
+        if (jArray == null) {
+            return null;
+        }
+        int[] iArray = new int[jArray.length()];
+        for (int i = 0; i < jArray.length(); i++) {
+            iArray[i] = jArray.getInt(i);
+        }
+        return iArray;
+    }
+
     private SoftApConfiguration createSoftApConfiguration(JSONObject configJson)
             throws JSONException {
         if (configJson == null) {
@@ -1634,10 +1730,45 @@ public class WifiManagerFacade extends RpcReceiver {
             for (int j = 0; j < blockedList.length(); j++) {
                 blockedClientList.add(MacAddress.fromString(blockedList.getString(j)));
             }
-
         }
+
         configBuilder.setAllowedClientList(allowedClientList);
         configBuilder.setBlockedClientList(blockedClientList);
+
+        if (configJson.has("apBands")) {
+            JSONArray jBands = configJson.getJSONArray("apBands");
+            int[] bands = convertJSONArrayToIntArray(jBands);
+            configBuilder.setBands(bands);
+        }
+
+        if (configJson.has("apChannelFrequencies")) {
+            JSONArray jChannelFrequencys = configJson.getJSONArray("apChannelFrequencies");
+            int[] channelFrequencies = convertJSONArrayToIntArray(jChannelFrequencys);
+            SparseIntArray channels = new SparseIntArray();
+            for (int channelFrequency : channelFrequencies) {
+                if (channelFrequency != 0) {
+                    channels.put(getApBandFromChannelFrequency(channelFrequency),
+                            ScanResult.convertFrequencyMhzToChannelIfSupported(channelFrequency));
+                }
+            }
+            if (channels.size() != 0) {
+                configBuilder.setChannels(channels);
+            }
+        }
+
+        if (configJson.has("MacRandomizationSetting")) {
+            configBuilder.setMacRandomizationSetting(configJson.getInt("MacRandomizationSetting"));
+        }
+
+        if (configJson.has("BridgedModeOpportunisticShutdownEnabled")) {
+            configBuilder.setBridgedModeOpportunisticShutdownEnabled(
+                    configJson.getBoolean("BridgedModeOpportunisticShutdownEnabled"));
+        }
+
+        if (configJson.has("Ieee80211axEnabled")) {
+            configBuilder.setIeee80211axEnabled(configJson.getBoolean("Ieee80211axEnabled"));
+        }
+
         return configBuilder.build();
     }
 
@@ -2126,7 +2257,7 @@ public class WifiManagerFacade extends RpcReceiver {
         mWifi.allowAutojoinPasspoint(fqdn, enableAutojoin);
     }
 
-    private CoexUnsafeChannel genCoexUnsafeChannel(JSONObject j) throws JSONException {
+    private static CoexUnsafeChannel genCoexUnsafeChannel(JSONObject j) throws JSONException {
         if (j == null || !j.has("band") || !j.has("channel")) {
             return null;
         }
@@ -2146,7 +2277,7 @@ public class WifiManagerFacade extends RpcReceiver {
         return new CoexUnsafeChannel(band, j.getInt("channel"));
     }
 
-    private List<CoexUnsafeChannel> genCoexUnsafeChannels(
+    private static List<CoexUnsafeChannel> genCoexUnsafeChannels(
             JSONArray jsonCoexUnsafeChannelsArray) throws JSONException {
         if (jsonCoexUnsafeChannelsArray == null) {
             return Collections.emptyList();
@@ -2159,7 +2290,8 @@ public class WifiManagerFacade extends RpcReceiver {
         return unsafeChannels;
     }
 
-    private int genCoexRestrictions(JSONArray jsonCoexRestrictionArray) throws JSONException {
+    private static int genCoexRestrictions(JSONArray jsonCoexRestrictionArray)
+            throws JSONException {
         if (jsonCoexRestrictionArray == null) {
             return 0;
         }
@@ -2188,7 +2320,7 @@ public class WifiManagerFacade extends RpcReceiver {
      *         (Optional) "powerCapDbm" : <Power Cap in Dbm>
      *     }
      */
-    private JSONArray coexUnsafeChannelsToJson(List<CoexUnsafeChannel> unsafeChannels)
+    private static JSONArray coexUnsafeChannelsToJson(List<CoexUnsafeChannel> unsafeChannels)
             throws JSONException {
         final JSONArray jsonCoexUnsafeChannelArray = new JSONArray();
         for (CoexUnsafeChannel unsafeChannel : unsafeChannels) {
@@ -2216,7 +2348,7 @@ public class WifiManagerFacade extends RpcReceiver {
      * Converts a coex restriction bitmask {@link WifiManager#getCoexRestrictions()} to a JSON array
      * of possible values "WIFI_DIRECT", "SOFTAP", "WIFI_AWARE".
      */
-    private JSONArray coexRestrictionsToJson(int coexRestrictions) {
+    private static JSONArray coexRestrictionsToJson(int coexRestrictions) {
         final JSONArray jsonCoexRestrictionArray = new JSONArray();
         if ((coexRestrictions & WifiManager.COEX_RESTRICTION_WIFI_DIRECT) != 0) {
             jsonCoexRestrictionArray.put("WIFI_DIRECT");
@@ -2263,31 +2395,14 @@ public class WifiManagerFacade extends RpcReceiver {
                 genCoexUnsafeChannels(unsafeChannels), genCoexRestrictions(restrictions));
     }
 
-    private final WifiManager.CoexCallback mCoexCallback =
-            new WifiManager.CoexCallback() {
-                private static final String EVENT_TAG = mEventType + "CoexCallback";
-
-                @Override
-                public void onCoexUnsafeChannelsChanged(
-                        @NonNull List<CoexUnsafeChannel> unsafeChannels, int restrictions) {
-                    Bundle event = new Bundle();
-                    try {
-                        event.putString("KEY_COEX_UNSAFE_CHANNELS",
-                                coexUnsafeChannelsToJson(unsafeChannels).toString());
-                        event.putString("KEY_COEX_RESTRICTIONS",
-                                coexRestrictionsToJson(restrictions).toString());
-                        mEventFacade.postEvent(EVENT_TAG + "#onCoexUnsafeChannelsChanged", event);
-                    } catch (JSONException e) {
-                        Log.e("Failed to post event for onCoexUnsafeChannelsChanged: " + e);
-                    }
-                }
-            };
-
     /**
      * Registers a coex callback to start receiving coex update events.
      */
     @Rpc(description = "Registers a coex callback to start receiving coex update events")
     public void wifiRegisterCoexCallback() {
+        if (!SdkLevel.isAtLeastS()) {
+            return;
+        }
         mWifi.registerCoexCallback(
                 new HandlerExecutor(mCallbackHandlerThread.getThreadHandler()), mCoexCallback);
     }
@@ -2297,6 +2412,9 @@ public class WifiManagerFacade extends RpcReceiver {
      */
     @Rpc(description = "Unregisters the coex callback to stop receiving coex update events")
     public void wifiUnregisterCoexCallback() {
+        if (!SdkLevel.isAtLeastS()) {
+            return;
+        }
         mWifi.unregisterCoexCallback(mCoexCallback);
     }
 }
