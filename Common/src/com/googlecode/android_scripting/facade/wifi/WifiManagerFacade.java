@@ -1350,6 +1350,33 @@ public class WifiManagerFacade extends RpcReceiver {
     }
 
     /**
+     * Check if wifi network is temporary disabled.
+     * @param config JSONObject Dictionary of wifi connection parameters.
+     * @return True if network is disabled temporarily, False if not.
+     */
+    @Rpc(description = "Check if network is temporary disabled")
+    public boolean wifiIsNetworkTemporaryDisabledForNetwork(
+            @RpcParameter(name = "config") JSONObject config)
+                throws JSONException, GeneralSecurityException {
+        WifiConfiguration wifiConfig;
+        if (config.has(WifiEnterpriseConfig.EAP_KEY)) {
+            wifiConfig = genWifiConfigWithEnterpriseConfig(config);
+        } else {
+            wifiConfig = genWifiConfig(config);
+        }
+        List<WifiConfiguration> wifiConfigList = wifiGetConfiguredNetworks();
+        for (WifiConfiguration conf : wifiConfigList) {
+            if (conf.getSsidAndSecurityTypeString().equals(
+                    wifiConfig.getSsidAndSecurityTypeString())) {
+                Log.d("Found matching config in the configured networks.");
+                return conf.getNetworkSelectionStatus().isNetworkTemporaryDisabled();
+            }
+        }
+        Log.d("Wifi config is not in list of configured wifi networks.");
+        return false;
+    }
+
+    /**
      * Get wifi standard for wifi connection.
      */
     @Rpc(description = "Return connection WiFi standard")
