@@ -501,7 +501,7 @@ public class TelephonyConstants {
         public static final String IS_DATA_ROAMING_FROM_REGISTRATION =
                 "isDataRoamingFromRegistration";
         public static final String IS_USING_CARRIER_AGGREGATION = "isUsingCarrierAggregation";
-        public static final String LTE_EARFCN_RSRP_BOOST = "lteEarfcnRsrpBoost";
+        public static final String LTE_EARFCN_RSRP_BOOST = "LteEarfcnRsrpBoost";
     }
 
     public static class MessageWaitingIndicatorContainer {
