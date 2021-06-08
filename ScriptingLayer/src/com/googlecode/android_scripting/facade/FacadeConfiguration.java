@@ -48,6 +48,7 @@ import com.googlecode.android_scripting.facade.net.SocketFacade;
 import com.googlecode.android_scripting.facade.net.SocketKeepaliveFacade;
 import com.googlecode.android_scripting.facade.net.nsd.NsdManagerFacade;
 import com.googlecode.android_scripting.facade.telephony.CarrierConfigFacade;
+import com.googlecode.android_scripting.facade.telephony.CellBroadcastReceiverFacade;
 import com.googlecode.android_scripting.facade.telephony.ImsManagerFacade;
 import com.googlecode.android_scripting.facade.telephony.ImsMmTelManagerFacade;
 import com.googlecode.android_scripting.facade.telephony.ProvisioningManagerFacade;
@@ -108,6 +109,7 @@ public class FacadeConfiguration {
         sFacadeClassList.add(EventFacade.class);
         sFacadeClassList.add(ImsManagerFacade.class);
         sFacadeClassList.add(ImsMmTelManagerFacade.class);
+        sFacadeClassList.add(CellBroadcastReceiverFacade.class);
         sFacadeClassList.add(LocationFacade.class);
         sFacadeClassList.add(TelephonyManagerFacade.class);
         sFacadeClassList.add(ProvisioningManagerFacade.class);
