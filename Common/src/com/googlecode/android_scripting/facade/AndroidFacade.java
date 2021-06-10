@@ -857,7 +857,8 @@ public class AndroidFacade extends RpcReceiver {
       @RpcParameter(name = "message") String message) {
     createNotificationChannel();
     // This contentIntent is a noop.
-    PendingIntent contentIntent = PendingIntent.getService(mService, 0, new Intent(), 0);
+    PendingIntent contentIntent = PendingIntent.getService(mService, 0, new Intent(),
+            PendingIntent.FLAG_IMMUTABLE);
     Notification.Builder builder = new Notification.Builder(mService, CHANNEL_ID);
     builder.setSmallIcon(mResources.getLogo48())
            .setTicker(message)
