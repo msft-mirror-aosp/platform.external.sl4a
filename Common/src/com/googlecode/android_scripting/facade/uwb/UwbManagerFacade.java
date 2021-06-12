@@ -44,6 +44,14 @@ public class UwbManagerFacade extends RpcReceiver {
     }
 
     /**
+     * Get Uwb adapter state.
+     */
+    @Rpc(description = "Get Uwb adapter state")
+    public int getAdapterState() {
+        return mUwbManager.getAdapterState();
+    }
+
+    /**
      * Set Uwb state to enabled or disabled.
      * @param enabled : boolean - true to enable, false to disable.
      */
