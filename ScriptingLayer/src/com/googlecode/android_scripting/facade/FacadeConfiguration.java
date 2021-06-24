@@ -48,6 +48,7 @@ import com.googlecode.android_scripting.facade.net.SocketFacade;
 import com.googlecode.android_scripting.facade.net.SocketKeepaliveFacade;
 import com.googlecode.android_scripting.facade.net.nsd.NsdManagerFacade;
 import com.googlecode.android_scripting.facade.telephony.CarrierConfigFacade;
+import com.googlecode.android_scripting.facade.telephony.CellBroadcastReceiverFacade;
 import com.googlecode.android_scripting.facade.telephony.ImsManagerFacade;
 import com.googlecode.android_scripting.facade.telephony.ImsMmTelManagerFacade;
 import com.googlecode.android_scripting.facade.telephony.ProvisioningManagerFacade;
@@ -57,6 +58,7 @@ import com.googlecode.android_scripting.facade.telephony.TelecomCallFacade;
 import com.googlecode.android_scripting.facade.telephony.TelecomManagerFacade;
 import com.googlecode.android_scripting.facade.telephony.TelephonyManagerFacade;
 import com.googlecode.android_scripting.facade.ui.UiFacade;
+import com.googlecode.android_scripting.facade.uwb.UwbManagerFacade;
 import com.googlecode.android_scripting.facade.webcam.WebCamFacade;
 import com.googlecode.android_scripting.facade.wifi.HttpFacade;
 import com.googlecode.android_scripting.facade.wifi.WifiAwareManagerFacade;
@@ -108,6 +110,7 @@ public class FacadeConfiguration {
         sFacadeClassList.add(EventFacade.class);
         sFacadeClassList.add(ImsManagerFacade.class);
         sFacadeClassList.add(ImsMmTelManagerFacade.class);
+        sFacadeClassList.add(CellBroadcastReceiverFacade.class);
         sFacadeClassList.add(LocationFacade.class);
         sFacadeClassList.add(TelephonyManagerFacade.class);
         sFacadeClassList.add(ProvisioningManagerFacade.class);
@@ -174,6 +177,10 @@ public class FacadeConfiguration {
 
         if (sSdkLevel >= 29) {
             sFacadeClassList.add(SocketKeepaliveFacade.class);
+        }
+
+        if (sSdkLevel >= 31) {
+            sFacadeClassList.add(UwbManagerFacade.class);
         }
 
         for (Class<? extends RpcReceiver> recieverClass : sFacadeClassList) {
