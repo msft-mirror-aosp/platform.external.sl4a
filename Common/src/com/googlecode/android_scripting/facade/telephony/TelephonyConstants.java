@@ -235,7 +235,7 @@ public class TelephonyConstants {
     public static final String OVERRIDE_NETWORK_TYPE_LTE_CA = "LTE_CA";
     public static final String OVERRIDE_NETWORK_TYPE_LTE_ADVANCED_PRO = "LTE_ADVANCED_PRO";
     public static final String OVERRIDE_NETWORK_TYPE_NR_NSA = "NR_NSA";
-    public static final String OVERRIDE_NETWORK_TYPE_NR_NSA_MMWAVE = "NR_MMWAVE";
+    public static final String OVERRIDE_NETWORK_TYPE_NR_ADVANCED = "NR_MMWAVE";
 
     /**
      * Constant for Telephony Manager Call State
