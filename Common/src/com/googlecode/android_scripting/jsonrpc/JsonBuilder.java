@@ -1538,7 +1538,7 @@ public class JsonBuilder {
         info.put(TelephonyConstants.ServiceStateContainer.IS_USING_CARRIER_AGGREGATION,
                 ss.isUsingCarrierAggregation());
         info.put(TelephonyConstants.ServiceStateContainer.LTE_EARFCN_RSRP_BOOST,
-                ss.getLteEarfcnRsrpBoost());
+                ss.getArfcnRsrpBoost());
         return info;
     }
 
