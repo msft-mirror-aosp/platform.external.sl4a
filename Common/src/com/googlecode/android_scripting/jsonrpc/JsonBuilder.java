@@ -99,6 +99,7 @@ import android.util.SparseArray;
 import android.util.SparseIntArray;
 
 import com.android.internal.net.LegacyVpnInfo;
+import com.android.modules.utils.build.SdkLevel;
 
 import com.googlecode.android_scripting.ConvertUtils;
 import com.googlecode.android_scripting.Log;
@@ -1150,24 +1151,26 @@ public class JsonBuilder {
         config.put("ClientControlByUserEnabled", data.isClientControlByUserEnabled());
         config.put("AllowedClientList", build(data.getAllowedClientList()));
         config.put("BlockedClientList", build(data.getBlockedClientList()));
-        config.put("apBands", buildJSONArray(
-                IntStream.of(data.getBands()).boxed().toArray(Integer[]::new)));
-        SparseIntArray channels = data.getChannels();
-        int[] channelFrequencies = new int[channels.size()];
-        for (int i = 0; i < channels.size(); i++) {
-            int channel = channels.valueAt(i);
-            channelFrequencies[i] = channel == 0 ? 0
-                    : ScanResult.convertChannelToFrequencyMhzIfSupported(
-                    channel, apBand2wifiScannerBand(channels.keyAt(i)));
+        if (SdkLevel.isAtLeastS()) {
+            config.put("apBands", buildJSONArray(
+                    IntStream.of(data.getBands()).boxed().toArray(Integer[]::new)));
+            SparseIntArray channels = data.getChannels();
+            int[] channelFrequencies = new int[channels.size()];
+            for (int i = 0; i < channels.size(); i++) {
+                int channel = channels.valueAt(i);
+                channelFrequencies[i] = channel == 0 ? 0
+                        : ScanResult.convertChannelToFrequencyMhzIfSupported(
+                        channel, apBand2wifiScannerBand(channels.keyAt(i)));
+            }
+            if (channelFrequencies.length != 0) {
+                config.put("apChannelFrequencies", build(
+                        IntStream.of(channelFrequencies).boxed().toArray(Integer[]::new)));
+            }
+            config.put("MacRandomizationSetting", build(data.getMacRandomizationSetting()));
+            config.put("BridgedModeOpportunisticShutdownEnabled",
+                    build(data.isBridgedModeOpportunisticShutdownEnabled()));
+            config.put("Ieee80211axEnabled", build(data.isIeee80211axEnabled()));
         }
-        if (channelFrequencies.length != 0) {
-            config.put("apChannelFrequencies", build(
-                    IntStream.of(channelFrequencies).boxed().toArray(Integer[]::new)));
-        }
-        config.put("MacRandomizationSetting", build(data.getMacRandomizationSetting()));
-        config.put("BridgedModeOpportunisticShutdownEnabled",
-                build(data.isBridgedModeOpportunisticShutdownEnabled()));
-        config.put("Ieee80211axEnabled", build(data.isIeee80211axEnabled()));
         return config;
     }
 
@@ -1338,9 +1341,11 @@ public class JsonBuilder {
         Log.d("build softAp info.");
         info.put("frequency", data.getFrequency());
         info.put("bandwidth", data.getBandwidth());
-        info.put("wifiStandard", data.getWifiStandard());
         info.put("autoShutdownTimeoutMillis", data.getAutoShutdownTimeoutMillis());
-        info.put("bssid", data.getBssid());
+        if (SdkLevel.isAtLeastS()) {
+            info.put("wifiStandard", data.getWifiStandard());
+            info.put("bssid", data.getBssid());
+        }
         return info;
     }
 
