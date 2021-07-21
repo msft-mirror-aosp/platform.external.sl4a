@@ -33,6 +33,7 @@ java_library {
         "sl4a.Utils",
         "junit",
         "modules-utils-build",
+        "aosp_test_rcs_client_base",
     ],
 
     sdk_version: "core_platform",
