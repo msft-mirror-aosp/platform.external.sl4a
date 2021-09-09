@@ -83,7 +83,6 @@ import android.telephony.CellSignalStrengthLte;
 import android.telephony.CellSignalStrengthTdscdma;
 import android.telephony.CellSignalStrengthWcdma;
 import android.telephony.ModemActivityInfo;
-import android.telephony.ModemActivityInfo.TransmitPower;
 import android.telephony.NeighboringCellInfo;
 import android.telephony.ServiceState;
 import android.telephony.SignalStrength;
@@ -124,6 +123,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class JsonBuilder {
 
@@ -1410,16 +1411,14 @@ public class JsonBuilder {
             throws JSONException {
         JSONObject info = new JSONObject();
 
-        info.put("Timestamp", modemInfo.getTimestamp());
+        info.put("Timestamp", modemInfo.getTimestampMillis());
         info.put("SleepTimeMs", modemInfo.getSleepTimeMillis());
         info.put("IdleTimeMs", modemInfo.getIdleTimeMillis());
-        // convert from int[] to List<Integer> for proper JSON translation
-        List<TransmitPower> txPowerIno = modemInfo.getTransmitPowerInfo();
-        List<Integer> tmp = new ArrayList<Integer>(txPowerIno.size());
-        for (TransmitPower val : txPowerIno) {
-            tmp.add(val.getTimeInMillis());
-        }
-        info.put("TxTimeMs", build(tmp));
+        List<Long> txPowerDurations = IntStream.range(0, 5)
+                .mapToLong(modemInfo::getTransmitDurationMillisAtPowerLevel)
+                .boxed()
+                .collect(Collectors.toList());
+        info.put("TxTimeMs", build(txPowerDurations));
         info.put("RxTimeMs", modemInfo.getReceiveTimeMillis());
         return info;
     }
