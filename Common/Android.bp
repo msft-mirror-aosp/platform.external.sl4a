@@ -32,11 +32,13 @@ java_library {
         "android-common",
         "sl4a.Utils",
         "junit",
+        "modules-utils-build",
     ],
 
     sdk_version: "core_platform",
     libs: [
         "framework-wifi.impl", // allow SL4A to access @hide Wifi APIs
+        "framework-connectivity.impl",
         "framework",
 
         "telephony-common",

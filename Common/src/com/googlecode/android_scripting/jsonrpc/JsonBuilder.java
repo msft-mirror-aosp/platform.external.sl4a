@@ -36,6 +36,7 @@ import android.net.IpPrefix;
 import android.net.LinkAddress;
 import android.net.LinkProperties;
 import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.net.ProxyInfo;
 import android.net.RouteInfo;
@@ -49,8 +50,10 @@ import android.net.wifi.WifiClient;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiEnterpriseConfig;
 import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiScanner;
 import android.net.wifi.WifiScanner.ScanData;
 import android.net.wifi.WpsInfo;
+import android.net.wifi.aware.WifiAwareNetworkInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pGroup;
@@ -93,12 +96,15 @@ import android.telephony.gsm.GsmCellLocation;
 import android.util.Base64;
 import android.util.DisplayMetrics;
 import android.util.SparseArray;
+import android.util.SparseIntArray;
 
 import com.android.internal.net.LegacyVpnInfo;
+import com.android.modules.utils.build.SdkLevel;
 
 import com.googlecode.android_scripting.ConvertUtils;
 import com.googlecode.android_scripting.Log;
 import com.googlecode.android_scripting.event.Event;
+import com.googlecode.android_scripting.facade.ConnectivityConstants;
 import com.googlecode.android_scripting.facade.DataUsageController.DataUsageInfo;
 import com.googlecode.android_scripting.facade.telephony.InCallServiceImpl;
 import com.googlecode.android_scripting.facade.telephony.TelephonyConstants;
@@ -238,6 +244,9 @@ public class JsonBuilder {
         }
         if (data instanceof Network) {
             return buildNetwork((Network) data);
+        }
+        if (data instanceof NetworkCapabilities) {
+            return buildNetworkCapabilities((NetworkCapabilities) data);
         }
         if (data instanceof NetworkInfo) {
             return buildNetworkInfo((NetworkInfo) data);
@@ -929,6 +938,48 @@ public class JsonBuilder {
         return nw;
     }
 
+    public static JSONObject buildNetworkCapabilities(JSONObject nc, NetworkCapabilities data)
+            throws JSONException {
+        nc.put(ConnectivityConstants.NetworkCallbackContainer.RSSI,
+                data.getSignalStrength());
+        nc.put(ConnectivityConstants.NetworkCallbackContainer.METERED,
+                !data.hasCapability(ConnectivityConstants.NET_CAPABILITY_TEMPORARILY_NOT_METERED));
+        nc.put(ConnectivityConstants.NET_CAPABILITIES_TRANSPORT_TYPE,
+                new JSONArray(data.getTransportTypes()));
+        nc.put(ConnectivityConstants.NET_CAPABILITIES_CAPABILITIES,
+                new JSONArray(data.getCapabilities()));
+
+        if (data.getNetworkSpecifier() != null) {
+            nc.put("network_specifier",
+                    data.getNetworkSpecifier().toString());
+        }
+        if (data.getTransportInfo() != null) {
+            nc.put("transport_info",
+                    JsonBuilder.build(data.getTransportInfo()));
+            if (data.getTransportInfo() instanceof WifiAwareNetworkInfo) {
+                WifiAwareNetworkInfo anc =
+                        (WifiAwareNetworkInfo) data.getTransportInfo();
+
+                String ipv6 = anc.getPeerIpv6Addr().toString();
+                if (ipv6.charAt(0) == '/') {
+                    ipv6 = ipv6.substring(1);
+                }
+                nc.put("aware_ipv6", ipv6);
+                if (anc.getPort() != 0) {
+                    nc.put("aware_port", anc.getPort());
+                }
+                if (anc.getTransportProtocol() != -1) {
+                    nc.put("aware_transport_protocol", anc.getTransportProtocol());
+                }
+            }
+        }
+        return nc;
+    }
+
+    private static Object buildNetworkCapabilities(NetworkCapabilities data) throws JSONException {
+        return buildNetworkCapabilities(new JSONObject(), data);
+    }
+
     private static Object buildNetworkInfo(NetworkInfo data)
             throws JSONException {
         JSONObject info = new JSONObject();
@@ -1057,6 +1108,22 @@ public class JsonBuilder {
         return result;
     }
 
+    private static @WifiScanner.WifiBand int apBand2wifiScannerBand(
+            @SoftApConfiguration.BandType int band) {
+        switch(band) {
+            case SoftApConfiguration.BAND_2GHZ:
+                return WifiScanner.WIFI_BAND_24_GHZ;
+            case SoftApConfiguration.BAND_5GHZ:
+                return WifiScanner.WIFI_BAND_5_GHZ;
+            case SoftApConfiguration.BAND_6GHZ:
+                return WifiScanner.WIFI_BAND_6_GHZ;
+            case SoftApConfiguration.BAND_60GHZ:
+                return WifiScanner.WIFI_BAND_60_GHZ;
+            default:
+                return WifiScanner.WIFI_BAND_UNSPECIFIED;
+        }
+    }
+
     private static Object buildSoftApConfiguration(SoftApConfiguration data)
             throws JSONException {
         JSONObject config = new JSONObject();
@@ -1084,6 +1151,26 @@ public class JsonBuilder {
         config.put("ClientControlByUserEnabled", data.isClientControlByUserEnabled());
         config.put("AllowedClientList", build(data.getAllowedClientList()));
         config.put("BlockedClientList", build(data.getBlockedClientList()));
+        if (SdkLevel.isAtLeastS()) {
+            config.put("apBands", buildJSONArray(
+                    IntStream.of(data.getBands()).boxed().toArray(Integer[]::new)));
+            SparseIntArray channels = data.getChannels();
+            int[] channelFrequencies = new int[channels.size()];
+            for (int i = 0; i < channels.size(); i++) {
+                int channel = channels.valueAt(i);
+                channelFrequencies[i] = channel == 0 ? 0
+                        : ScanResult.convertChannelToFrequencyMhzIfSupported(
+                        channel, apBand2wifiScannerBand(channels.keyAt(i)));
+            }
+            if (channelFrequencies.length != 0) {
+                config.put("apChannelFrequencies", build(
+                        IntStream.of(channelFrequencies).boxed().toArray(Integer[]::new)));
+            }
+            config.put("MacRandomizationSetting", build(data.getMacRandomizationSetting()));
+            config.put("BridgedModeOpportunisticShutdownEnabled",
+                    build(data.isBridgedModeOpportunisticShutdownEnabled()));
+            config.put("Ieee80211axEnabled", build(data.isIeee80211axEnabled()));
+        }
         return config;
     }
 
@@ -1222,6 +1309,29 @@ public class JsonBuilder {
                 SoftApCapability.SOFTAP_FEATURE_CLIENT_FORCE_DISCONNECT));
         info.put("wpa3SaeSupported", data.areFeaturesSupported(
                 SoftApCapability.SOFTAP_FEATURE_WPA3_SAE));
+        info.put("ieee80211axSupported", data.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_IEEE80211_AX));
+        info.put("24gSupported", data.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_24G_SUPPORTED));
+        info.put("5gSupported", data.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_5G_SUPPORTED));
+        info.put("6gSupported", data.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_6G_SUPPORTED));
+        info.put("60gSupported", data.areFeaturesSupported(
+                SoftApCapability.SOFTAP_FEATURE_BAND_60G_SUPPORTED));
+        info.put("supported2GHzChannellist", build(
+                IntStream.of(data.getSupportedChannelList(SoftApConfiguration.BAND_2GHZ))
+                .boxed().toArray(Integer[]::new)));
+
+        info.put("supported5GHzChannellist", build(
+                IntStream.of(data.getSupportedChannelList(SoftApConfiguration.BAND_5GHZ))
+                .boxed().toArray(Integer[]::new)));
+        info.put("supported6GHzChannellist", build(
+                IntStream.of(data.getSupportedChannelList(SoftApConfiguration.BAND_6GHZ))
+                .boxed().toArray(Integer[]::new)));
+        info.put("supported60GHzChannellist", build(
+                IntStream.of(data.getSupportedChannelList(SoftApConfiguration.BAND_60GHZ))
+                .boxed().toArray(Integer[]::new)));
         return info;
     }
 
@@ -1231,6 +1341,11 @@ public class JsonBuilder {
         Log.d("build softAp info.");
         info.put("frequency", data.getFrequency());
         info.put("bandwidth", data.getBandwidth());
+        info.put("autoShutdownTimeoutMillis", data.getAutoShutdownTimeoutMillis());
+        if (SdkLevel.isAtLeastS()) {
+            info.put("wifiStandard", data.getWifiStandard());
+            info.put("bssid", data.getBssid());
+        }
         return info;
     }
 
