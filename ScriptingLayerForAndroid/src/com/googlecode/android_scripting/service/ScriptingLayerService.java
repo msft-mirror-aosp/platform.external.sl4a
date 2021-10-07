@@ -120,7 +120,9 @@ public class ScriptingLayerService extends ForegroundService {
     protected Notification createNotification() {
         Intent notificationIntent = new Intent(this, ScriptingLayerService.class);
         notificationIntent.setAction(Constants.ACTION_SHOW_RUNNING_SCRIPTS);
-        mNotificationPendingIntent = PendingIntent.getService(this, 0, notificationIntent, 0);
+        mNotificationPendingIntent =
+                PendingIntent.getService(this, 0, notificationIntent,
+                        PendingIntent.FLAG_IMMUTABLE);
 
         createNotificationChannel();
         Notification.Builder builder = new Notification.Builder(this, CHANNEL_ID);
@@ -259,6 +261,8 @@ public class ScriptingLayerService extends ForegroundService {
     }
 
     private ScriptProcess launchScript(Intent intent, AndroidProxy proxy) {
+        Log.d(String.format("Launching script with intent: %s.",
+                intent.toUri(0)));
         final int port = proxy.getAddress().getPort();
         File script = new File(intent.getStringExtra(Constants.EXTRA_SCRIPT_PATH));
         return ScriptLauncher.launchScript(script, mInterpreterConfiguration, proxy, () -> {
@@ -274,6 +278,8 @@ public class ScriptingLayerService extends ForegroundService {
     }
 
     private InterpreterProcess launchInterpreter(Intent intent, AndroidProxy proxy) {
+        Log.d(String.format("Launching interpreter with intent: %s.",
+                intent.toUri(0)));
         InterpreterConfiguration config =
                 ((BaseApplication) getApplication()).getInterpreterConfiguration();
         final int port = proxy.getAddress().getPort();
