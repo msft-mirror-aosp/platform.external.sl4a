@@ -68,7 +68,7 @@ android_test_helper_app {
     jni_libs: ["libcom_googlecode_android_scripting_Exec"],
 
     min_sdk_version: "30",
-    target_sdk_version: "30",
+    target_sdk_version: "31",
 }
 
 java_import {
