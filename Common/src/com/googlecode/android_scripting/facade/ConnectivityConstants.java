@@ -89,4 +89,10 @@ public class ConnectivityConstants {
     public static final String PrivateDnsModeOff = "off";
     public static final String PrivateDnsModeOpportunistic = "opportunistic";
     public static final String PrivateDnsModeStrict = "hostname";
+
+    /**
+     * Constants for NetworkCapabilties/NetworkRequest
+     */
+    public static final String NET_CAPABILITIES_TRANSPORT_TYPE = "TransportType";
+    public static final String NET_CAPABILITIES_CAPABILITIES = "Capability";
 }
