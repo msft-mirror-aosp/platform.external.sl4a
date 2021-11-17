@@ -297,17 +297,17 @@ public class UwbManagerFacade extends RpcReceiver {
         }
         FiraOpenSessionParams.Builder builder = new FiraOpenSessionParams.Builder();
         builder.setProtocolVersion(FiraParams.PROTOCOL_VERSION_1_1);
+        if (j.has("sessionId")) {
+            builder.setSessionId(j.getInt("sessionId"));
+        }
         if (j.has("deviceType")) {
             builder.setDeviceType(j.getInt("deviceType"));
         }
         if (j.has("deviceRole")) {
             builder.setDeviceRole(j.getInt("deviceRole"));
         }
-        if (j.has("sessionId")) {
-            builder.setSessionId(j.getInt("sessionId"));
-        }
-        if (j.has("channel")) {
-            builder.setChannelNumber(j.getInt("channel"));
+        if (j.has("rangingRoundUsage")) {
+            builder.setRangingRoundUsage(j.getInt("rangingRoundUsage"));
         }
         if (j.has("multiNodeMode")) {
             builder.setMultiNodeMode(j.getInt("multiNodeMode"));
@@ -327,6 +327,42 @@ public class UwbManagerFacade extends RpcReceiver {
             }
             builder.setDestAddressList(Arrays.asList(destinationUwbAddresses));
         }
+        if (j.has("initiationTimeMs")) {
+            builder.setInitiationTimeMs(j.getInt("initiationTimeMs"));
+        }
+        if (j.has("slotDurationRstu")) {
+            builder.setSlotDurationRstu(j.getInt("slotDurationRstu"));
+        }
+        if (j.has("slotsPerRangingRound")) {
+            builder.setSlotsPerRangingRound(j.getInt("slotsPerRangingRound"));
+        }
+        if (j.has("rangingIntervalMs")) {
+            builder.setRangingIntervalMs(j.getInt("rangingIntervalMs"));
+        }
+        if (j.has("blockStrideLength")) {
+            builder.setBlockStrideLength(j.getInt("blockStrideLength"));
+        }
+        if (j.has("hoppingMode")) {
+            builder.setHoppingMode(j.getInt("hoppingMode"));
+        }
+        if (j.has("maxRangingRoundRetries")) {
+            builder.setMaxRangingRoundRetries(j.getInt("maxRangingRoundRetries"));
+        }
+        if (j.has("sessionPriority")) {
+            builder.setSessionPriority(j.getInt("sessionPriority"));
+        }
+        if (j.has("macAddressMode")) {
+            builder.setMacAddressMode(j.getInt("macAddressMode"));
+        }
+        if (j.has("inBandTerminationAttemptCount")) {
+            builder.setInBandTerminationAttemptCount(j.getInt("inBandTerminationAttemptCount"));
+        }
+        if (j.has("channel")) {
+            builder.setChannelNumber(j.getInt("channel"));
+        }
+        if (j.has("preamble")) {
+            builder.setPreambleCodeIndex(j.getInt("preamble"));
+        }
         if (j.has("vendorId")) {
             JSONArray jArray = j.getJSONArray("vendorId");
             byte[] bArray = convertJSONArrayToByteArray(jArray);
@@ -337,6 +373,10 @@ public class UwbManagerFacade extends RpcReceiver {
             byte[] bArray = convertJSONArrayToByteArray(jArray);
             builder.setStaticStsIV(bArray);
         }
+        if (j.has("aoaResultRequest")) {
+            builder.setAoaResultRequest(j.getInt("aoaResultRequest"));
+        }
+
         return builder.build();
     }
 
@@ -363,6 +403,17 @@ public class UwbManagerFacade extends RpcReceiver {
     public void startRangingSession(String key) {
         RangingSessionCallback rangingSessionCallback = sRangingSessionCallbackMap.get(key);
         rangingSessionCallback.rangingSession.start(new PersistableBundle());
+    }
+
+    /**
+     * Reconfigures UWB ranging session.
+     */
+    @Rpc(description = "Reconfigure UWB ranging session")
+    public void reconfigureRangingSession(String key,
+            @RpcParameter(name = "config") JSONObject config) throws JSONException {
+        RangingSessionCallback rangingSessionCallback = sRangingSessionCallbackMap.get(key);
+        FiraOpenSessionParams params = generateFiraOpenSessionParams(config);
+        rangingSessionCallback.rangingSession.reconfigure(params.toBundle());
     }
 
     private RangingMeasurement getRangingMeasurement(String key, JSONArray jArray)
