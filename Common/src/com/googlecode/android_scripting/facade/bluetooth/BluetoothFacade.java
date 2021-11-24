@@ -17,15 +17,16 @@
 package com.googlecode.android_scripting.facade.bluetooth;
 
 import android.app.Service;
-import android.bluetooth.BluetoothActivityEnergyInfo;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.BatteryStats;
 import android.os.Bundle;
 import android.os.ParcelUuid;
+import android.os.SynchronousResultReceiver;
 
 import com.googlecode.android_scripting.Log;
 import com.googlecode.android_scripting.MainThread;
@@ -43,6 +44,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Basic Bluetooth functions.
@@ -381,16 +383,19 @@ public class BluetoothFacade extends RpcReceiver {
     }
 
     @Rpc(description = "Get Bluetooth controller activity energy info.")
-    public String bluetoothGetControllerActivityEnergyInfo(
-        @RpcParameter(name = "value")
-        Integer value
-            ) {
-        BluetoothActivityEnergyInfo energyInfo = mBluetoothAdapter
-            .getControllerActivityEnergyInfo(value);
-        while (energyInfo == null) {
-          energyInfo = mBluetoothAdapter.getControllerActivityEnergyInfo(value);
+    public String bluetoothGetControllerActivityEnergyInfo() {
+        SynchronousResultReceiver receiver = new SynchronousResultReceiver();
+        mBluetoothAdapter.requestControllerActivityEnergyInfo(receiver);
+        try {
+            SynchronousResultReceiver.Result result = receiver.awaitResult(1000);
+            if (result.bundle != null) {
+                return result.bundle.getParcelable(BatteryStats.RESULT_RECEIVER_CONTROLLER_KEY)
+                    .toString();
+            }
+        } catch (TimeoutException e) {
+            Log.e("getControllerActivityEnergyInfo timed out");
         }
-        return energyInfo.toString();
+        return null;
     }
 
     @Rpc(description = "Return true if hardware has entries" +
