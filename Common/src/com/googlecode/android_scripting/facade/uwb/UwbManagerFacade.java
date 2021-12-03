@@ -100,31 +100,17 @@ public class UwbManagerFacade extends RpcReceiver {
         public PersistableBundle persistableBundle;
         public PersistableBundle sessionInfo;
         public RangingReport rangingReport;
-        private int mEvents;
         public String mId;
 
         RangingSessionCallback(int events) {
-            mEvents = events;
             mId = this.toString();
-        }
-
-        public void startListeningForEvents(int events) {
-            mEvents |= events & Event.EventAll.getType();
-        }
-
-        public void stopListeningForEvents(int events) {
-            mEvents &= ~(events & Event.EventAll.getType());
         }
 
         private void handleEvent(Event e) {
             Log.d(TAG + "RangingSessionCallback#handleEvent() for " + e.toString());
-            if ((mEvents & e.getType()) == e.getType()) {
-                if ((mEvents & e.getType()) == e.getType()) {
-                    mEventFacade.postEvent(
-                            UwbConstants.EventRangingSessionCallback,
-                            new UwbEvents.RangingSessionEvent(mId, e.toString()));
-                }
-            }
+            mEventFacade.postEvent(
+                    UwbConstants.EventRangingSessionCallback,
+                    new UwbEvents.RangingSessionEvent(mId, e.toString()));
         }
 
         @Override
@@ -202,40 +188,6 @@ public class UwbManagerFacade extends RpcReceiver {
             rangingReport = report;
             handleEvent(Event.ReportReceived);
         }
-    }
-
-    /**
-     * Start listening for a ranging session event
-     * @param key : hash key of {@link RangingSessionCallback}
-     * @param eventString : type of ranging session event.
-     * @return True if listening for event successful, false if not
-     */
-    @Rpc(description = "start listening for RangingSession Event")
-    public Boolean rangingSessionStartListeningForEvent(String key, String eventString) {
-        RangingSessionCallback mRangingSessionCallback = sRangingSessionCallbackMap.get(key);
-        int event = Event.valueOf(eventString).getType();
-        if (mRangingSessionCallback == null || event == Event.Invalid.getType()) {
-            return false;
-        }
-        mRangingSessionCallback.startListeningForEvents(event);
-        return true;
-    }
-
-    /**
-     * Stop listening for a ranging session event
-     * @param key : hash key of {@link RangingSessionCallback}
-     * @param eventString : type of ranging session event.
-     * @return True if listening event successful, false if not
-     */
-    @Rpc(description = "stop listening for RangingSession Event")
-    public Boolean rangingSessionStopListeningForEvent(String key, String eventString) {
-        RangingSessionCallback mRangingSessionCallback = sRangingSessionCallbackMap.get(key);
-        int event = Event.valueOf(eventString).getType();
-        if (mRangingSessionCallback == null || event == Event.Invalid.getType()) {
-            return false;
-        }
-        mRangingSessionCallback.stopListeningForEvents(event);
-        return true;
     }
 
     public UwbManagerFacade(FacadeManager manager) {
