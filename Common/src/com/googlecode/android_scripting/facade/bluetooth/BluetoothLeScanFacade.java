@@ -817,9 +817,9 @@ public class BluetoothLeScanFacade extends RpcReceiver {
     public void bleSetScanFilterDeviceAddressTypeAndIrk(
             @RpcParameter(name = "macAddress") String macAddress,
             @RpcParameter(name = "addressType") Integer addressType,
-            @RpcParameter(name = "irk") byte[] irk
+            @RpcParameter(name = "irk") String irk
     ) {
-        mScanFilterBuilder.setDeviceAddress(macAddress, addressType, irk);
+        mScanFilterBuilder.setDeviceAddress(macAddress, addressType, irk.getBytes());
     }
 
     /**
