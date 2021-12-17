@@ -58,6 +58,8 @@ public class UwbManagerFacade extends RpcReceiver {
     private final EventFacade mEventFacade;
     private static HashMap<String, RangingSessionCallback> sRangingSessionCallbackMap =
             new HashMap<String, RangingSessionCallback>();
+    private static HashMap<String, UwbAdapterStateCallback> sUwbAdapterStateCallbackMap =
+            new HashMap<String, UwbAdapterStateCallback>();
 
     private enum Event {
         Invalid(0),
@@ -93,6 +95,35 @@ public class UwbManagerFacade extends RpcReceiver {
             return mType;
         }
     }
+
+    private static class UwbAdapterStateCallback implements UwbManager.AdapterStateCallback {
+
+        private final String mId;
+        private final EventFacade mEventFacade;
+
+        UwbAdapterStateCallback(EventFacade eventFacade) {
+            mId = this.toString();
+            mEventFacade = eventFacade;
+        }
+
+        public String toString(int state) {
+            switch (state) {
+                case 1: return "Inactive";
+                case 2: return "Active";
+                default: return "Disabled";
+            }
+        }
+
+        @Override
+        public void onStateChanged(int state, int reason) {
+            Log.d(TAG + "UwbAdapterStateCallback#onStateChanged() called");
+            Log.d(TAG + "Adapter state changed reason " + String.valueOf(reason));
+            mEventFacade.postEvent(
+                    UwbConstants.EventUwbAdapterStateCallback,
+                    new UwbEvents.UwbAdapterStateEvent(mId, toString(state)));
+        }
+    }
+
 
     class RangingSessionCallback implements RangingSession.Callback {
 
@@ -222,6 +253,28 @@ public class UwbManagerFacade extends RpcReceiver {
     public void setUwbEnabled(@RpcParameter(name = "enabled") Boolean enabled) {
         Log.d(TAG + "Setting Uwb state to " + enabled);
         mUwbManager.setUwbEnabled(enabled);
+    }
+
+    /**
+     * Register uwb adapter state callback.
+     */
+    @Rpc(description = "Register uwb adapter state callback")
+    public String registerUwbAdapterStateCallback() {
+        UwbAdapterStateCallback uwbAdapterStateCallback = new UwbAdapterStateCallback(mEventFacade);
+        String key = uwbAdapterStateCallback.mId;
+        sUwbAdapterStateCallbackMap.put(key, uwbAdapterStateCallback);
+        mUwbManager.registerAdapterStateCallback(mExecutor, uwbAdapterStateCallback);
+        return key;
+    }
+
+    /**
+     * Unregister uwb adapter state callback.
+     */
+    @Rpc(description = "Unregister uwb adapter state callback.")
+    public void unregisterUwbAdapterStateCallback(String key) {
+        UwbAdapterStateCallback uwbAdapterStateCallback = sUwbAdapterStateCallbackMap.get(key);
+        mUwbManager.unregisterAdapterStateCallback(uwbAdapterStateCallback);
+        sUwbAdapterStateCallbackMap.remove(key);
     }
 
     /**

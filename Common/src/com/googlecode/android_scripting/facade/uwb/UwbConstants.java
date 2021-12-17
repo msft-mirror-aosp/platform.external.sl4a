@@ -20,6 +20,21 @@ package com.googlecode.android_scripting.facade.uwb;
  * Constants to be used in the facade for Uwb.
  */
 public class UwbConstants {
+
+    /**
+     * Uwb adapter state change event
+     */
+    public static final String EventUwbAdapterStateCallback = "UwbAdapterStateCallback";
+
+    /**
+     * Constants for UwbAdapterStateEvent.
+     */
+    public static class UwbAdapterStateContainer {
+        public static final String ID = "id";
+        public static final String UWB_ADAPTER_STATE_EVENT = "uwbAdapterStateEvent";
+    }
+
+
     /**
      * Ranging session event
      */

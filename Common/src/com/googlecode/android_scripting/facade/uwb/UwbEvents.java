@@ -25,6 +25,35 @@ import org.json.JSONObject;
  * Utility class for Uwb.
  */
 public class UwbEvents {
+
+    /**
+     * Translates a UWB adapter state event to JSON.
+     */
+    public static class UwbAdapterStateEvent implements JsonSerializable {
+        private String mId;
+        private String mUwbAdapterStateEvent;
+
+        public UwbAdapterStateEvent(String id, String event) {
+            mId = id;
+            mUwbAdapterStateEvent = event;
+        }
+
+        /**
+         * Create a JSON data-structure.
+         */
+        public JSONObject toJSON() throws JSONException {
+            JSONObject uwbAdapterState = new JSONObject();
+
+            uwbAdapterState.put(UwbConstants.UwbAdapterStateContainer.ID, mId);
+            uwbAdapterState.put(
+                    UwbConstants.UwbAdapterStateContainer.UWB_ADAPTER_STATE_EVENT,
+                    mUwbAdapterStateEvent);
+
+            return uwbAdapterState;
+        }
+    }
+
+
     /**
      * Translates a UWB ranging session event to JSON.
      */
