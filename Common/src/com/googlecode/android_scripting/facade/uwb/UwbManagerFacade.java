@@ -28,6 +28,7 @@ import android.uwb.UwbManager;
 
 import com.google.uwb.support.fira.FiraOpenSessionParams;
 import com.google.uwb.support.fira.FiraParams;
+import com.google.uwb.support.fira.FiraRangingReconfigureParams;
 import com.googlecode.android_scripting.Log;
 import com.googlecode.android_scripting.facade.EventFacade;
 import com.googlecode.android_scripting.facade.FacadeManager;
@@ -296,6 +297,27 @@ public class UwbManagerFacade extends RpcReceiver {
         return bArray;
     }
 
+    private FiraRangingReconfigureParams generateFiraRangingReconfigureParams(JSONObject j)
+            throws JSONException {
+        if (j == null) {
+            return null;
+        }
+        FiraRangingReconfigureParams.Builder builder = new FiraRangingReconfigureParams.Builder();
+        if (j.has("action")) {
+            builder.setAction(j.getInt("action"));
+        }
+        if (j.has("addressList")) {
+            JSONArray jArray = j.getJSONArray("addressList");
+            UwbAddress[] addressList = new UwbAddress[jArray.length()];
+            for (int i = 0; i < jArray.length(); i++) {
+                addressList[i] = UwbAddress.fromBytes(
+                        convertJSONArrayToByteArray(jArray.getJSONArray(i)));
+            }
+            builder.setAddressList(addressList);
+        }
+        return builder.build();
+    }
+
     private FiraOpenSessionParams generateFiraOpenSessionParams(JSONObject j) throws JSONException {
         if (j == null) {
             return null;
@@ -417,7 +439,7 @@ public class UwbManagerFacade extends RpcReceiver {
     public void reconfigureRangingSession(String key,
             @RpcParameter(name = "config") JSONObject config) throws JSONException {
         RangingSessionCallback rangingSessionCallback = sRangingSessionCallbackMap.get(key);
-        FiraOpenSessionParams params = generateFiraOpenSessionParams(config);
+        FiraRangingReconfigureParams params = generateFiraRangingReconfigureParams(config);
         rangingSessionCallback.rangingSession.reconfigure(params.toBundle());
     }
 
