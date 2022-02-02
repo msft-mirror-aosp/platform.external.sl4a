@@ -42,6 +42,7 @@ java_library {
         "framework-wifi.impl", // allow SL4A to access @hide Wifi APIs
         "framework-connectivity.impl",
         "framework-uwb.impl",
+        "framework-bluetooth.impl",
         "framework",
 
         "telephony-common",
