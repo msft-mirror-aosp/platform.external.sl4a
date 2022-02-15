@@ -28,6 +28,7 @@ import android.uwb.UwbManager;
 
 import com.google.uwb.support.fira.FiraOpenSessionParams;
 import com.google.uwb.support.fira.FiraParams;
+import com.google.uwb.support.fira.FiraRangingReconfigureParams;
 import com.googlecode.android_scripting.Log;
 import com.googlecode.android_scripting.facade.EventFacade;
 import com.googlecode.android_scripting.facade.FacadeManager;
@@ -58,6 +59,8 @@ public class UwbManagerFacade extends RpcReceiver {
     private final EventFacade mEventFacade;
     private static HashMap<String, RangingSessionCallback> sRangingSessionCallbackMap =
             new HashMap<String, RangingSessionCallback>();
+    private static HashMap<String, UwbAdapterStateCallback> sUwbAdapterStateCallbackMap =
+            new HashMap<String, UwbAdapterStateCallback>();
 
     private enum Event {
         Invalid(0),
@@ -93,6 +96,35 @@ public class UwbManagerFacade extends RpcReceiver {
             return mType;
         }
     }
+
+    private static class UwbAdapterStateCallback implements UwbManager.AdapterStateCallback {
+
+        private final String mId;
+        private final EventFacade mEventFacade;
+
+        UwbAdapterStateCallback(EventFacade eventFacade) {
+            mId = this.toString();
+            mEventFacade = eventFacade;
+        }
+
+        public String toString(int state) {
+            switch (state) {
+                case 1: return "Inactive";
+                case 2: return "Active";
+                default: return "Disabled";
+            }
+        }
+
+        @Override
+        public void onStateChanged(int state, int reason) {
+            Log.d(TAG + "UwbAdapterStateCallback#onStateChanged() called");
+            Log.d(TAG + "Adapter state changed reason " + String.valueOf(reason));
+            mEventFacade.postEvent(
+                    UwbConstants.EventUwbAdapterStateCallback,
+                    new UwbEvents.UwbAdapterStateEvent(mId, toString(state)));
+        }
+    }
+
 
     class RangingSessionCallback implements RangingSession.Callback {
 
@@ -225,6 +257,28 @@ public class UwbManagerFacade extends RpcReceiver {
     }
 
     /**
+     * Register uwb adapter state callback.
+     */
+    @Rpc(description = "Register uwb adapter state callback")
+    public String registerUwbAdapterStateCallback() {
+        UwbAdapterStateCallback uwbAdapterStateCallback = new UwbAdapterStateCallback(mEventFacade);
+        String key = uwbAdapterStateCallback.mId;
+        sUwbAdapterStateCallbackMap.put(key, uwbAdapterStateCallback);
+        mUwbManager.registerAdapterStateCallback(mExecutor, uwbAdapterStateCallback);
+        return key;
+    }
+
+    /**
+     * Unregister uwb adapter state callback.
+     */
+    @Rpc(description = "Unregister uwb adapter state callback.")
+    public void unregisterUwbAdapterStateCallback(String key) {
+        UwbAdapterStateCallback uwbAdapterStateCallback = sUwbAdapterStateCallbackMap.get(key);
+        mUwbManager.unregisterAdapterStateCallback(uwbAdapterStateCallback);
+        sUwbAdapterStateCallbackMap.remove(key);
+    }
+
+    /**
      * Get UWB specification info.
      */
     @Rpc(description = "Get Uwb specification info")
@@ -241,6 +295,27 @@ public class UwbManagerFacade extends RpcReceiver {
             bArray[i] = (byte) jArray.getInt(i);
         }
         return bArray;
+    }
+
+    private FiraRangingReconfigureParams generateFiraRangingReconfigureParams(JSONObject j)
+            throws JSONException {
+        if (j == null) {
+            return null;
+        }
+        FiraRangingReconfigureParams.Builder builder = new FiraRangingReconfigureParams.Builder();
+        if (j.has("action")) {
+            builder.setAction(j.getInt("action"));
+        }
+        if (j.has("addressList")) {
+            JSONArray jArray = j.getJSONArray("addressList");
+            UwbAddress[] addressList = new UwbAddress[jArray.length()];
+            for (int i = 0; i < jArray.length(); i++) {
+                addressList[i] = UwbAddress.fromBytes(
+                        convertJSONArrayToByteArray(jArray.getJSONArray(i)));
+            }
+            builder.setAddressList(addressList);
+        }
+        return builder.build();
     }
 
     private FiraOpenSessionParams generateFiraOpenSessionParams(JSONObject j) throws JSONException {
@@ -364,7 +439,7 @@ public class UwbManagerFacade extends RpcReceiver {
     public void reconfigureRangingSession(String key,
             @RpcParameter(name = "config") JSONObject config) throws JSONException {
         RangingSessionCallback rangingSessionCallback = sRangingSessionCallbackMap.get(key);
-        FiraOpenSessionParams params = generateFiraOpenSessionParams(config);
+        FiraRangingReconfigureParams params = generateFiraRangingReconfigureParams(config);
         rangingSessionCallback.rangingSession.reconfigure(params.toBundle());
     }
 
