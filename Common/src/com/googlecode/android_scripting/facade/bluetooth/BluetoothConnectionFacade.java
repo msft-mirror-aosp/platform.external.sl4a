@@ -554,6 +554,11 @@ public class BluetoothConnectionFacade extends RpcReceiver {
         return mBluetoothAdapter.getRemoteDevice(macAddress).createBond();
     }
 
+    @Rpc(description = "Bluetooth init LE Bond by Mac Address")
+    public boolean bluetoothLeBond(@RpcParameter(name = "macAddress") String macAddress) {
+        return mBluetoothAdapter.getRemoteDevice(macAddress).createBond(BluetoothDevice.TRANSPORT_LE);
+    }
+
     @Rpc(description = "Return true if a bluetooth device is connected.")
     public Boolean bluetoothIsDeviceConnected(String deviceID) {
         for (BluetoothDevice bd : mBluetoothAdapter.getBondedDevices()) {
@@ -580,6 +585,8 @@ public class BluetoothConnectionFacade extends RpcReceiver {
                 return mPbapClientProfile.bluetoothPbapClientGetConnectedDevices();
             case BluetoothProfile.MAP_CLIENT:
                 return mMapClientProfile.bluetoothMapClientGetConnectedDevices();
+            case BluetoothProfile.HID_HOST:
+                return mHidProfile.bluetoothHidGetConnectedDevices();
             default:
                 Log.w("Profile id " + profileId + " is not yet supported.");
                 return new ArrayList<BluetoothDevice>();
