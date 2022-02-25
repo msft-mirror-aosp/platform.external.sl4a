@@ -21,6 +21,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHeadset;
 import android.bluetooth.BluetoothProfile;
+import android.bluetooth.BluetoothStatusCodes;
 import android.bluetooth.BluetoothUuid;
 import android.os.ParcelUuid;
 
@@ -234,7 +235,7 @@ public class BluetoothHspFacade extends RpcReceiver {
             Log.d("Cannot find device " + deviceAddress);
             return false;
         }
-        return sHspProfile.connectAudio();
+        return sHspProfile.connectAudio() == BluetoothStatusCodes.SUCCESS;
     }
 
     /**
@@ -267,7 +268,7 @@ public class BluetoothHspFacade extends RpcReceiver {
             Log.d("SCO audio is not connected for device " + deviceAddress);
             return false;
         }
-        return sHspProfile.disconnectAudio();
+        return sHspProfile.disconnectAudio() == BluetoothStatusCodes.SUCCESS;
     }
 
     /**
