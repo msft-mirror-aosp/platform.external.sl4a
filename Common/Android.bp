@@ -34,6 +34,7 @@ java_library {
         "junit",
         "modules-utils-build",
         "aosp_test_rcs_client_base",
+	"com.uwb.support.ccc",
         "com.uwb.support.fira",
     ],
 
