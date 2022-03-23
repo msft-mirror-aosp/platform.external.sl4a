@@ -20,7 +20,6 @@ import android.app.Service;
 import android.bluetooth.BluetoothA2dp;
 import android.bluetooth.BluetoothA2dpSink;
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothAdapter.OobDataCallback;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHeadset;
 import android.bluetooth.BluetoothHeadsetClient;
@@ -33,7 +32,6 @@ import android.bluetooth.BluetoothPan;
 import android.bluetooth.BluetoothPbapClient;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothUuid;
-import android.bluetooth.OobData;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -69,25 +67,6 @@ public class BluetoothConnectionFacade extends RpcReceiver {
     private final BluetoothPairingHelper mPairingHelper;
     private final Map<String, BroadcastReceiver> listeningDevices;
     private final EventFacade mEventFacade;
-    private final OobDataCallback mGenerateOobDataCallback = new OobDataCallback() {
-            @Override
-            public void onError(int error) {
-                Log.d("onError: " + error);
-                Bundle results = new Bundle();
-                results.putInt("Error", error);
-                mEventFacade.postEvent("ErrorOobData", results.clone());
-            }
-
-            @Override
-            public void onOobData(int transport, OobData data) {
-                Log.d("Transport: " + transport);
-                Log.d("OobData: " + data);
-                Bundle results = new Bundle();
-                results.putInt("Transport", transport);
-                results.putParcelable("OobData", data);
-                mEventFacade.postEvent("GeneratedOobData", results.clone());
-            }
-        };
 
     private final IntentFilter mDiscoverConnectFilter;
     private final IntentFilter mPairingFilter;
@@ -575,11 +554,6 @@ public class BluetoothConnectionFacade extends RpcReceiver {
         return mBluetoothAdapter.getRemoteDevice(macAddress).createBond();
     }
 
-    @Rpc(description = "Bluetooth init LE Bond by Mac Address")
-    public boolean bluetoothLeBond(@RpcParameter(name = "macAddress") String macAddress) {
-        return mBluetoothAdapter.getRemoteDevice(macAddress).createBond(BluetoothDevice.TRANSPORT_LE);
-    }
-
     @Rpc(description = "Return true if a bluetooth device is connected.")
     public Boolean bluetoothIsDeviceConnected(String deviceID) {
         for (BluetoothDevice bd : mBluetoothAdapter.getBondedDevices()) {
@@ -588,17 +562,6 @@ public class BluetoothConnectionFacade extends RpcReceiver {
             }
         }
         return false;
-    }
-
-    /**
-     * Generates the local Out of Band data for the given transport.
-     */
-    @Rpc(description = "Generate Out of Band data for OOB Pairing.")
-    public void bluetoothGenerateLocalOobData(@RpcParameter(name = "transport") String transport) {
-        Log.d("bluetoothGenerateLocalOobData(" + transport + ")");
-        mBluetoothAdapter.generateLocalOobData(Integer.parseInt(transport),
-                mContext.getMainExecutor(), mGenerateOobDataCallback);
-
     }
 
     @Rpc(description = "Return list of connected bluetooth devices over a profile",
@@ -617,8 +580,6 @@ public class BluetoothConnectionFacade extends RpcReceiver {
                 return mPbapClientProfile.bluetoothPbapClientGetConnectedDevices();
             case BluetoothProfile.MAP_CLIENT:
                 return mMapClientProfile.bluetoothMapClientGetConnectedDevices();
-            case BluetoothProfile.HID_HOST:
-                return mHidProfile.bluetoothHidGetConnectedDevices();
             default:
                 Log.w("Profile id " + profileId + " is not yet supported.");
                 return new ArrayList<BluetoothDevice>();
