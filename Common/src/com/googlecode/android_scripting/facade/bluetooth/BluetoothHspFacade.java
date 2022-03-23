@@ -21,7 +21,6 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHeadset;
 import android.bluetooth.BluetoothProfile;
-import android.bluetooth.BluetoothStatusCodes;
 import android.bluetooth.BluetoothUuid;
 import android.os.ParcelUuid;
 
@@ -109,23 +108,21 @@ public class BluetoothHspFacade extends RpcReceiver {
     }
 
     /**
-     * Set connection policy of the profile.
+     * Set priority of the profile.
      * @param deviceStr - name or MAC address of a Bluetooth device.
-     * @param connectionPolicy - Connection policy that needs to be set.
+     * @param priority - Priority that needs to be set.
      */
     @Rpc(description = "Set priority of the profile.")
-    public void bluetoothHspSetConnectionPolicy(
+    public void bluetoothHspSetPriority(
             @RpcParameter(name = "device", description = "Mac address of a BT device.")
                 String deviceStr,
-            @RpcParameter(name = "connectionPolicy",
-              description = "Connection policy that needs to be set.")
-                Integer connectionPolicy) throws Exception {
+            @RpcParameter(name = "priority", description = "Priority that needs to be set.")
+                Integer priority) throws Exception {
         if (!waitHspReady(10)) return;
         BluetoothDevice device = BluetoothFacade.getDevice(
                 mBluetoothAdapter.getBondedDevices(), deviceStr);
-        Log.d("Changing connection policy of device " + device.getAlias() + " cp: "
-                + connectionPolicy);
-        sHspProfile.setConnectionPolicy(device, connectionPolicy);
+        Log.d("Changing priority of device " + device.getAlias() + " p: " + priority);
+        sHspProfile.setPriority(device, priority);
     }
 
     /**
@@ -237,7 +234,7 @@ public class BluetoothHspFacade extends RpcReceiver {
             Log.d("Cannot find device " + deviceAddress);
             return false;
         }
-        return sHspProfile.connectAudio() == BluetoothStatusCodes.SUCCESS;
+        return sHspProfile.connectAudio();
     }
 
     /**
@@ -270,7 +267,7 @@ public class BluetoothHspFacade extends RpcReceiver {
             Log.d("SCO audio is not connected for device " + deviceAddress);
             return false;
         }
-        return sHspProfile.disconnectAudio() == BluetoothStatusCodes.SUCCESS;
+        return sHspProfile.disconnectAudio();
     }
 
     /**
