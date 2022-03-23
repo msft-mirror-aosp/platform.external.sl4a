@@ -40,6 +40,7 @@ import com.googlecode.android_scripting.rpc.RpcParameter;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -289,7 +290,10 @@ public class BluetoothFacade extends RpcReceiver {
 
     @Rpc(description = "Returns the UUIDs supported by local Bluetooth adapter.")
     public ParcelUuid[] bluetoothGetLocalUuids() {
-        return mBluetoothAdapter.getUuids();
+        List<ParcelUuid> uuidsList = mBluetoothAdapter.getUuidsList();
+        ParcelUuid[] uuidsArray = new ParcelUuid[uuidsList.size()];
+        uuidsList.toArray(uuidsArray);
+        return uuidsArray;
     }
 
     @Rpc(description = "Gets the scan mode for the local dongle.\r\n" + "Return values:\r\n"
@@ -325,7 +329,7 @@ public class BluetoothFacade extends RpcReceiver {
 
     @Rpc(description = "Factory reset bluetooth settings.", returns = "True if successful.")
     public boolean bluetoothFactoryReset() {
-        return mBluetoothAdapter.factoryReset();
+        return mBluetoothAdapter.clearBluetooth();
     }
 
     @Rpc(description = "Toggle Bluetooth on and off.", returns = "True if Bluetooth is enabled.")

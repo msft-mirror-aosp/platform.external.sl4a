@@ -28,14 +28,10 @@ import android.app.usage.NetworkStats;
 import android.app.usage.NetworkStatsManager;
 import android.content.Context;
 import android.net.ConnectivityManager;
-import android.net.INetworkStatsService;
-import android.net.INetworkStatsSession;
 import android.net.NetworkPolicy;
 import android.net.NetworkPolicyManager;
 import android.net.NetworkStatsHistory;
 import android.net.NetworkTemplate;
-import android.os.RemoteException;
-import android.os.ServiceManager;
 import android.telephony.TelephonyManager;
 import android.text.format.DateUtils;
 import android.util.Log;
@@ -58,10 +54,8 @@ public class DataUsageController {
     private final Context mContext;
     private final TelephonyManager mTelephonyManager;
     private final ConnectivityManager mConnectivityManager;
-    private final INetworkStatsService mStatsService;
     private final NetworkPolicyManager mPolicyManager;
 
-    private INetworkStatsSession mSession;
     private Callback mCallback;
     private NetworkNameProvider mNetworkController;
 
@@ -69,26 +63,11 @@ public class DataUsageController {
         mContext = context;
         mTelephonyManager = TelephonyManager.from(context);
         mConnectivityManager = ConnectivityManager.from(context);
-        mStatsService = INetworkStatsService.Stub.asInterface(
-                ServiceManager.getService(Context.NETWORK_STATS_SERVICE));
         mPolicyManager = NetworkPolicyManager.from(mContext);
     }
 
     public void setNetworkController(NetworkNameProvider networkController) {
         mNetworkController = networkController;
-    }
-
-    private INetworkStatsSession getSession() {
-        if (mSession == null) {
-            try {
-                mSession = mStatsService.openSession();
-            } catch (RemoteException e) {
-                Log.w(TAG, "Failed to open stats session", e);
-            } catch (RuntimeException e) {
-                Log.w(TAG, "Failed to open stats session", e);
-            }
-        }
-        return mSession;
     }
 
     public void setCallback(Callback callback) {
@@ -169,10 +148,6 @@ public class DataUsageController {
      * @return DataUsageInfo: The data usage information.
      */
     public DataUsageInfo getDataUsageInfo(NetworkTemplate template, int uid) {
-        final INetworkStatsSession session = getSession();
-        if (session == null) {
-            return warn("no stats session");
-        }
         final NetworkPolicy policy = findNetworkPolicy(template);
         final long totalBytes;
         final long now = System.currentTimeMillis();
