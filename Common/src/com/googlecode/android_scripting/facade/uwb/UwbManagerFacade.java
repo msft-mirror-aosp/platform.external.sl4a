@@ -353,7 +353,6 @@ public class UwbManagerFacade extends RpcReceiver {
         }
         CccOpenRangingParams.Builder builder = new CccOpenRangingParams.Builder();
         builder.setProtocolVersion(CccParams.PROTOCOL_VERSION_1_0);
-        builder.setPulseShapeCombo(new CccPulseShapeCombo(1, 1));
         if (j.has("sessionId")) {
             builder.setSessionId(j.getInt("sessionId"));
         }
@@ -383,6 +382,12 @@ public class UwbManagerFacade extends RpcReceiver {
         }
         if (j.has("syncCodeIndex")) {
             builder.setSyncCodeIndex(j.getInt("syncCodeIndex"));
+        }
+        if (j.has("pulseShapeCombo")) {
+            JSONObject pulseShapeCombo = j.getJSONObject("pulseShapeCombo");
+            builder.setPulseShapeCombo(new CccPulseShapeCombo(
+                    pulseShapeCombo.getInt("pulseShapeComboTx"),
+                    pulseShapeCombo.getInt("pulseShapeComboRx")));
         }
 
         return builder.build();
