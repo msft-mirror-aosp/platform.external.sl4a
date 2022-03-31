@@ -17,6 +17,7 @@
 package com.googlecode.android_scripting.facade.bluetooth;
 
 import android.app.Service;
+import android.bluetooth.BluetoothActivityEnergyInfo;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
@@ -406,10 +407,23 @@ public class BluetoothFacade extends RpcReceiver {
                         runnable.run();
                     }
                 },
-                info -> {
-                    Bundle bundle = new Bundle();
-                    bundle.putParcelable(BatteryStats.RESULT_RECEIVER_CONTROLLER_KEY, info);
-                    receiver.send(0, bundle);
+                new BluetoothAdapter.OnBluetoothActivityEnergyInfoCallback() {
+                    @Override
+                    public void onBluetoothActivityEnergyInfoAvailable(
+                            BluetoothActivityEnergyInfo info) {
+                        Bundle bundle = new Bundle();
+                        bundle.putParcelable(
+                                BatteryStats.RESULT_RECEIVER_CONTROLLER_KEY, info);
+                        receiver.send(0, bundle);
+                    }
+
+                    @Override
+                    public void onBluetoothActivityEnergyInfoError(int errorCode) {
+                        Bundle bundle = new Bundle();
+                        bundle.putParcelable(
+                                BatteryStats.RESULT_RECEIVER_CONTROLLER_KEY, null);
+                        receiver.send(0, bundle);
+                    }
                 }
         );
         try {
