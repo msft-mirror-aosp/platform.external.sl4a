@@ -17,6 +17,7 @@
 package com.googlecode.android_scripting.facade.bluetooth;
 
 import android.app.Service;
+import android.bluetooth.BluetoothActivityEnergyInfo;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
@@ -45,6 +46,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -389,7 +391,32 @@ public class BluetoothFacade extends RpcReceiver {
     @Rpc(description = "Get Bluetooth controller activity energy info.")
     public String bluetoothGetControllerActivityEnergyInfo() {
         SynchronousResultReceiver receiver = new SynchronousResultReceiver();
-        mBluetoothAdapter.requestControllerActivityEnergyInfo(receiver);
+        mBluetoothAdapter.requestControllerActivityEnergyInfo(
+                new Executor() {
+                    @Override
+                    public void execute(Runnable runnable) {
+                        runnable.run();
+                    }
+                },
+                new BluetoothAdapter.OnBluetoothActivityEnergyInfoCallback() {
+                    @Override
+                    public void onBluetoothActivityEnergyInfoAvailable(
+                            BluetoothActivityEnergyInfo info) {
+                        Bundle bundle = new Bundle();
+                        bundle.putParcelable(
+                                BatteryStats.RESULT_RECEIVER_CONTROLLER_KEY, info);
+                        receiver.send(0, bundle);
+                    }
+
+                    @Override
+                    public void onBluetoothActivityEnergyInfoError(int errorCode) {
+                        Bundle bundle = new Bundle();
+                        bundle.putParcelable(
+                                BatteryStats.RESULT_RECEIVER_CONTROLLER_KEY, null);
+                        receiver.send(0, bundle);
+                    }
+                }
+        );
         try {
             SynchronousResultReceiver.Result result = receiver.awaitResult(1000);
             if (result.bundle != null) {
