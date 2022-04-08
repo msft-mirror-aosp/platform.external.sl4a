@@ -17,31 +17,33 @@
 package com.googlecode.android_scripting.facade;
 
 import android.os.Environment;
+import android.security.Credentials;
+import android.security.KeyStore;
 import android.util.Log;
 
 import com.android.internal.net.VpnProfile;
-import com.android.internal.org.bouncycastle.asn1.ASN1InputStream;
-import com.android.internal.org.bouncycastle.asn1.ASN1Sequence;
-import com.android.internal.org.bouncycastle.asn1.DEROctetString;
-import com.android.internal.org.bouncycastle.asn1.x509.BasicConstraints;
-
-import libcore.io.Streams;
+import com.android.org.bouncycastle.asn1.ASN1InputStream;
+import com.android.org.bouncycastle.asn1.ASN1Sequence;
+import com.android.org.bouncycastle.asn1.DEROctetString;
+import com.android.org.bouncycastle.asn1.x509.BasicConstraints;
 
 import junit.framework.Assert;
+
+import libcore.io.Streams;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.KeyStore;
-import java.security.KeyStore.PasswordProtection;
-import java.security.KeyStore.PrivateKeyEntry;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.KeyStore.PasswordProtection;
+import java.security.KeyStore.PrivateKeyEntry;
 import java.security.PrivateKey;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -56,27 +58,21 @@ import java.util.List;
 public class CertInstallerHelper {
     private static final String TAG = "CertInstallerHelper";
     /* Define a password to unlock keystore after it is reset */
+    private static final String CERT_STORE_PASSWORD = "password";
+    private final int mUid = KeyStore.UID_SELF;
     private PrivateKey mUserKey;  // private key
     private X509Certificate mUserCert;  // user certificate
     private List<X509Certificate> mCaCerts = new ArrayList<X509Certificate>();
-    private final KeyStore mKeyStore;
+    private KeyStore mKeyStore = KeyStore.getInstance();
 
     /**
-     * Delete all key for caller.
+     * Unlock keystore and set password
      */
     public CertInstallerHelper() {
-        try {
-            mKeyStore = KeyStore.getInstance("AndroidKeyStore");
-            mKeyStore.load(null);
-            final Enumeration<String> aliases = mKeyStore.aliases();
-            while (aliases.hasMoreElements()) {
-                mKeyStore.deleteEntry(aliases.nextElement());
-            }
-        } catch (KeyStoreException | CertificateException | NoSuchAlgorithmException
-                | IOException e) {
-            Log.e(TAG, "Failed to open and cleanup Keystore.", e);
-            throw new RuntimeException("Failed to open and cleanup Keystore.", e);
+        for (String key : mKeyStore.list("")) {
+            mKeyStore.delete(key, KeyStore.UID_SELF);
         }
+        mKeyStore.onUserPasswordChanged(CERT_STORE_PASSWORD);
     }
 
     private void extractCertificate(String certFile, String password) {
@@ -170,7 +166,7 @@ public class CertInstallerHelper {
 
     /**
      * Extract certificate from the given file, and install it to keystore
-     * @param profile VpnProfile
+     * @param name certificate name
      * @param certFile .p12 file which includes certificates
      * @param password password to extract the .p12 file
      */
@@ -178,39 +174,51 @@ public class CertInstallerHelper {
         // extract private keys, certificates from the provided file
         extractCertificate(certFile, password);
         // install certificate to the keystore
+        int flags = KeyStore.FLAG_ENCRYPTED;
         try {
-            boolean caInstalledWithUserKey = false;
-
             if (mUserKey != null) {
                 Log.v(TAG, "has private key");
-                if (mUserCert == null) {
-                    throw new AssertionError("Must have user cert if user key is installed.");
+                String key = Credentials.USER_PRIVATE_KEY + profile.ipsecUserCert;
+                byte[] value = mUserKey.getEncoded();
+
+                if (!mKeyStore.importKey(key, value, mUid, flags)) {
+                    Log.e(TAG, "Failed to install " + key + " as user " + mUid);
+                    return;
                 }
-                final List<Certificate> certChain = new ArrayList<Certificate>();
-                certChain.add(mUserCert);
-                if (profile.ipsecUserCert.equals(profile.ipsecCaCert)) {
-                    // If the CA certs should be installed under the same alias they have to be
-                    // added to the end of the certificate chain.
-                    certChain.addAll(mCaCerts);
-                    // Make a note that we have installed the CA cert chain along with the
-                    // user key and cert.
-                    caInstalledWithUserKey = true;
-                }
-                mKeyStore.setKeyEntry(profile.ipsecUserCert, mUserKey, null,
-                        certChain.toArray(new Certificate[0]));
-                Log.v(TAG, "install " + profile.ipsecUserCert + " is successful");
+                Log.v(TAG, "install " + key + " as user " + mUid + " is successful");
             }
 
-            if (!(mCaCerts.isEmpty() || caInstalledWithUserKey)) {
-                if (mCaCerts.size() != 1) {
-                    throw new AssertionError("Trusted certificate cannot be a cert chain.");
+            if (mUserCert != null) {
+                String certName = Credentials.USER_CERTIFICATE + profile.ipsecUserCert;
+                byte[] certData = Credentials.convertToPem(mUserCert);
+
+                if (!mKeyStore.put(certName, certData, mUid, flags)) {
+                    Log.e(TAG, "Failed to install " + certName + " as user " + mUid);
+                    return;
                 }
-                mKeyStore.setCertificateEntry(profile.ipsecCaCert, mCaCerts.get(0));
-                Log.v(TAG, " install " + profile.ipsecCaCert + " is successful");
+                Log.v(TAG, "install " + certName + " as user" + mUid + " is successful.");
             }
-        } catch (KeyStoreException e) {
-            Log.e(TAG, "Exception trying to import certificates. " + e);
+
+            if (!mCaCerts.isEmpty()) {
+                String caListName = Credentials.CA_CERTIFICATE + profile.ipsecCaCert;
+                X509Certificate[] caCerts = mCaCerts.toArray(new X509Certificate[mCaCerts.size()]);
+                byte[] caListData = Credentials.convertToPem(caCerts);
+
+                if (!mKeyStore.put(caListName, caListData, mUid, flags)) {
+                    Log.e(TAG, "Failed to install " + caListName + " as user " + mUid);
+                    return;
+                }
+                Log.v(TAG, " install " + caListName + " as user " + mUid + " is successful");
+            }
+        } catch (CertificateEncodingException e) {
+            Log.e(TAG, "Exception while convert certificates to pem " + e);
             throw new AssertionError(e);
+        } catch (IOException e) {
+            Log.e(TAG, "IOException while convert to pem: " + e);
         }
+    }
+
+    public int getUid() {
+        return mUid;
     }
 }

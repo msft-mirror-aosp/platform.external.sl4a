@@ -74,8 +74,7 @@ public class Log {
            .setWhen(0)
            .setContentTitle(contentTitle)
            .setContentText(message)
-           .setContentIntent(PendingIntent.getService(context, 0, null,
-                   PendingIntent.FLAG_IMMUTABLE));
+           .setContentIntent(PendingIntent.getService(context, 0, null, 0));
     Notification note = builder.build();
     note.contentView.getLayoutId();
     notificationManager.notify(NotificationIdFactory.create(), note);

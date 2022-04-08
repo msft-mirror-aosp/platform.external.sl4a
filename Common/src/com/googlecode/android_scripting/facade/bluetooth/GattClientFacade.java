@@ -1740,7 +1740,7 @@ public class GattClientFacade extends RpcReceiver {
      * @param index the bluetooth gatt index
      * @param minConnectionInterval minimum connection interval
      * @param maxConnectionInterval maximum connection interval
-     * @param peripheralLatency maximum peripheral latency
+     * @param slaveLatency maximum slave latency
      * @param supervisionTimeout supervision timeout
      * @return boolean True if successful False otherwise.
      * @throws Exception
@@ -1750,7 +1750,7 @@ public class GattClientFacade extends RpcReceiver {
             @RpcParameter(name = "index") Integer index,
             @RpcParameter(name = "minConnectionInterval") Integer minConnectionInterval,
             @RpcParameter(name = "maxConnectionInterval") Integer maxConnectionInterval,
-            @RpcParameter(name = "peripheralLatency") Integer peripheralLatency,
+            @RpcParameter(name = "slaveLatency") Integer slaveLatency,
             @RpcParameter(name = "supervisionTimeout") Integer supervisionTimeout,
             @RpcParameter(name = "minConnectionEventLen") Integer minConnectionEventLen,
             @RpcParameter(name = "maxConnectionEventLen") Integer maxConnectionEventLen)
@@ -1758,7 +1758,7 @@ public class GattClientFacade extends RpcReceiver {
         boolean result = false;
         if (mBluetoothGattList.get(index) != null) {
             result = mBluetoothGattList.get(index).requestLeConnectionUpdate(
-                minConnectionInterval, maxConnectionInterval, peripheralLatency, supervisionTimeout,
+                minConnectionInterval, maxConnectionInterval, slaveLatency, supervisionTimeout,
                 minConnectionEventLen, maxConnectionEventLen);
         } else {
             throw new Exception("Invalid index input:" + index);

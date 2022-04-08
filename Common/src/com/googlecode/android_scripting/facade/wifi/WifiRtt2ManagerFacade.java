@@ -79,7 +79,7 @@ public class WifiRtt2ManagerFacade extends RpcReceiver {
 
     @Override
     public void shutdown() {
-        mService.unregisterReceiver(mStateChangedReceiver);
+        // empty
     }
 
     @Rpc(description = "Does the device support the Wi-Fi RTT feature?")

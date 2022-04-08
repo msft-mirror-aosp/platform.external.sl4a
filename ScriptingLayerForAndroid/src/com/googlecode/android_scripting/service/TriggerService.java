@@ -127,8 +127,7 @@ public class TriggerService extends ForegroundService {
            .setWhen(System.currentTimeMillis())
            .setContentTitle("SL4A Trigger Service")
            .setContentText("Tap to view triggers")
-           .setContentIntent(PendingIntent.getActivity(this, 0, notificationIntent,
-                   PendingIntent.FLAG_IMMUTABLE));
+           .setContentIntent(PendingIntent.getActivity(this, 0, notificationIntent, 0));
     Notification notification = builder.build();
     notification.flags = Notification.FLAG_NO_CLEAR | Notification.FLAG_ONGOING_EVENT;
     return notification;
