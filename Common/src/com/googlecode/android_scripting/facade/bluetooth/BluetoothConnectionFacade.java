@@ -673,6 +673,11 @@ public class BluetoothConnectionFacade extends RpcReceiver {
                 event.putBoolean("bonded_state", state == BluetoothDevice.BOND_BONDED);
                 mEventFacade.postEvent("Bonded", event);
                 mContext.unregisterReceiver(this);
+            } else if (state == BluetoothDevice.BOND_NONE) {
+                Bundle event = new Bundle();
+                event.putBoolean("bonded_state", state == BluetoothDevice.BOND_BONDED);
+                mEventFacade.postEvent("Unbonded", event);
+                mContext.unregisterReceiver(this);
             }
         }
     }
@@ -750,6 +755,8 @@ public class BluetoothConnectionFacade extends RpcReceiver {
                     String deviceID) throws Exception {
         BluetoothDevice mDevice = BluetoothFacade.getDevice(mBluetoothAdapter.getBondedDevices(),
                 deviceID);
+        mContext.registerReceiver(new BondBroadcastReceiver(),
+                new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
         return mDevice.removeBond();
     }
 
