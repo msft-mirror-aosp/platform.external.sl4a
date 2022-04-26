@@ -16,6 +16,7 @@
 
 package com.googlecode.android_scripting.facade.bluetooth;
 
+import android.app.PendingIntent;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothAdapter.LeScanCallback;
@@ -26,6 +27,11 @@ import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanFilter.Builder;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.ParcelUuid;
 
@@ -195,12 +201,12 @@ public class BluetoothLeScanFacade extends RpcReceiver {
     }
 
     /**
-     * Starts a ble scan
+     * Starts a ble scan with ScanCallback callbacks.
      *
      * @param index the id of the myScan whose ScanCallback to start
      * @throws Exception
      */
-    @Rpc(description = "Starts a ble advertisement scan")
+    @Rpc(description = "Starts a ble advertisement scan using scan callback")
     public void bleStartBleScan(
             @RpcParameter(name = "filterListIndex")
             Integer filterListIndex,
@@ -231,6 +237,69 @@ public class BluetoothLeScanFacade extends RpcReceiver {
         } else {
             throw new Exception("Invalid filterListIndex input:"
                     + Integer.toString(filterListIndex));
+        }
+    }
+
+    private PendingIntent createPendingIntent() {
+      return PendingIntent
+          .getBroadcast(mService, 0,
+              new Intent(mService, ScanBroadcastReceiver.class)
+                  .setAction("com.googlecode.android_scripting.ACTION_FOUND")
+                  .setComponent(new ComponentName("com.googlecode.android_scripting",
+                          "com.googlecode.android_scripting.facade.bluetooth.ScanBroadcastReceiver")),
+                  PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_MUTABLE);
+    }
+
+    /**
+     * Starts a ble scan with pending intent callback.
+     *
+     * @param index the id of the myScan whose ScanCallback to start
+     * @throws Exception
+     */
+    @Rpc(description = "Starts a ble advertisement scan")
+    public void bleStartBleScanPendingIntent(
+            @RpcParameter(name = "filterListIndex")
+            Integer filterListIndex,
+            @RpcParameter(name = "scanSettingsIndex")
+            Integer scanSettingsIndex
+            ) throws Exception {
+        Log.d("bluetooth_le_scan starting a background scan using pending intent");
+        ArrayList<ScanFilter> mScanFilters = new ArrayList<ScanFilter>();
+        mScanFilters.add(new ScanFilter.Builder().build());
+        ScanSettings mScanSettings = new ScanSettings.Builder().build();
+        if (mScanFilterList.get(filterListIndex) != null) {
+            mScanFilters = mScanFilterList.get(filterListIndex);
+        } else {
+            throw new IllegalArgumentException("Invalid filterListIndex input:"
+                    + Integer.toString(filterListIndex));
+        }
+        if (mScanSettingsList.get(scanSettingsIndex) != null) {
+            mScanSettings = mScanSettingsList.get(scanSettingsIndex);
+        } else if (!mScanSettingsList.isEmpty()) {
+            throw new IllegalArgumentException("Invalid scanSettingsIndex input:"
+                    + Integer.toString(scanSettingsIndex));
+        }
+        Log.d("Registering receiver");
+        mService.registerReceiver(new TestBroadcastReceiver() ,
+               new IntentFilter(ScanBroadcastReceiver.ACTION_FOUND_SIDESTEP));
+        Log.d("Starting Scan");
+        mScanner.startScan(mScanFilters, mScanSettings, createPendingIntent());
+    }
+
+    private class TestBroadcastReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.d("TEST onReceive( " + context + ", " + intent + ")");
+            ArrayList<ScanResult> results = intent.getParcelableArrayListExtra(BluetoothLeScanner.EXTRA_LIST_SCAN_RESULT);
+            if (results != null && results.size() > 0) {
+                for (final ScanResult result : results) {
+                    Log.d("onScanResult : " + result.getDevice().getName() + " " + result.getDevice()
+                            .getAddress());
+                    new myScanCallback(1).onScanResult(ScanSettings.CALLBACK_TYPE_ALL_MATCHES, result);
+                }
+            } else {
+                Log.d("Empty results");
+            }
         }
     }
 
@@ -817,9 +886,9 @@ public class BluetoothLeScanFacade extends RpcReceiver {
     public void bleSetScanFilterDeviceAddressTypeAndIrk(
             @RpcParameter(name = "macAddress") String macAddress,
             @RpcParameter(name = "addressType") Integer addressType,
-            @RpcParameter(name = "irk") byte[] irk
+            @RpcParameter(name = "irk") String irk
     ) {
-        mScanFilterBuilder.setDeviceAddress(macAddress, addressType, irk);
+        mScanFilterBuilder.setDeviceAddress(macAddress, addressType, irk.getBytes());
     }
 
     /**

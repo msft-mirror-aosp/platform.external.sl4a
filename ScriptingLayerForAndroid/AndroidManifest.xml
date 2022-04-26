@@ -20,6 +20,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.googlecode.android_scripting"
     android:sharedUserId="android.uid.system">
+
+    <permission android:name="com.googlecode.android_scripting.ACTION_FOUND_PERMISSION" />
+
+    <protected-broadcast android:name="com.googlecode.android_scripting.ACTION_FOUND"
+        android:protectionLevel="signatureOrSystem"/>
+
     <uses-permission android:name="android.permission.ACCESS_BLUETOOTH_SHARE" />
     <uses-permission android:name="android.permission.ACCESS_CHECKIN_PROPERTIES" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
@@ -247,5 +253,13 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+        <receiver android:name=".facade.bluetooth.ScanBroadcastReceiver"
+            android:exported="true" >
+            <intent-filter>
+                <action
+                    android:name="com.googlecode.android_scripting.ACTION_FOUND"
+                    android:permission="com.googlecode.android_scripting.ACTION_FOUND_PERMISSION" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>
