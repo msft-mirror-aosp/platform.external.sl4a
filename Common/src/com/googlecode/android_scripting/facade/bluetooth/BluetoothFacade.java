@@ -17,6 +17,7 @@
 package com.googlecode.android_scripting.facade.bluetooth;
 
 import android.app.Service;
+import android.bluetooth.BluetoothActivityEnergyInfo;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
@@ -41,10 +42,12 @@ import com.googlecode.android_scripting.rpc.RpcParameter;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -298,7 +301,10 @@ public class BluetoothFacade extends RpcReceiver {
 
     @Rpc(description = "Returns the UUIDs supported by local Bluetooth adapter.")
     public ParcelUuid[] bluetoothGetLocalUuids() {
-        return mBluetoothAdapter.getUuids();
+        List<ParcelUuid> uuidsList = mBluetoothAdapter.getUuidsList();
+        ParcelUuid[] uuidsArray = new ParcelUuid[uuidsList.size()];
+        uuidsList.toArray(uuidsArray);
+        return uuidsArray;
     }
 
     @Rpc(description = "Gets the scan mode for the local dongle.\r\n" + "Return values:\r\n"
@@ -334,7 +340,7 @@ public class BluetoothFacade extends RpcReceiver {
 
     @Rpc(description = "Factory reset bluetooth settings.", returns = "True if successful.")
     public boolean bluetoothFactoryReset() {
-        return mBluetoothAdapter.factoryReset();
+        return mBluetoothAdapter.clearBluetooth();
     }
 
     @Rpc(description = "Toggle Bluetooth on and off.", returns = "True if Bluetooth is enabled.")
@@ -394,7 +400,32 @@ public class BluetoothFacade extends RpcReceiver {
     @Rpc(description = "Get Bluetooth controller activity energy info.")
     public String bluetoothGetControllerActivityEnergyInfo() {
         SynchronousResultReceiver receiver = new SynchronousResultReceiver();
-        mBluetoothAdapter.requestControllerActivityEnergyInfo(receiver);
+        mBluetoothAdapter.requestControllerActivityEnergyInfo(
+                new Executor() {
+                    @Override
+                    public void execute(Runnable runnable) {
+                        runnable.run();
+                    }
+                },
+                new BluetoothAdapter.OnBluetoothActivityEnergyInfoCallback() {
+                    @Override
+                    public void onBluetoothActivityEnergyInfoAvailable(
+                            BluetoothActivityEnergyInfo info) {
+                        Bundle bundle = new Bundle();
+                        bundle.putParcelable(
+                                BatteryStats.RESULT_RECEIVER_CONTROLLER_KEY, info);
+                        receiver.send(0, bundle);
+                    }
+
+                    @Override
+                    public void onBluetoothActivityEnergyInfoError(int errorCode) {
+                        Bundle bundle = new Bundle();
+                        bundle.putParcelable(
+                                BatteryStats.RESULT_RECEIVER_CONTROLLER_KEY, null);
+                        receiver.send(0, bundle);
+                    }
+                }
+        );
         try {
             SynchronousResultReceiver.Result result = receiver.awaitResult(1000);
             if (result.bundle != null) {
