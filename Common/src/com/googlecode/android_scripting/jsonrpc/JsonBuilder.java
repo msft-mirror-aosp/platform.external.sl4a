@@ -60,6 +60,7 @@ import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.os.Bundle;
 import android.os.ParcelUuid;
+import android.os.PersistableBundle;
 import android.os.connectivity.WifiActivityEnergyInfo;
 import android.telecom.Call;
 import android.telecom.CallAudioState;
@@ -73,18 +74,21 @@ import android.telephony.CellIdentityGsm;
 import android.telephony.CellIdentityLte;
 import android.telephony.CellIdentityTdscdma;
 import android.telephony.CellIdentityWcdma;
+import android.telephony.CellIdentityNr;
 import android.telephony.CellInfo;
 import android.telephony.CellInfoCdma;
 import android.telephony.CellInfoGsm;
 import android.telephony.CellInfoLte;
 import android.telephony.CellInfoTdscdma;
 import android.telephony.CellInfoWcdma;
+import android.telephony.CellInfoNr;
 import android.telephony.CellLocation;
 import android.telephony.CellSignalStrengthCdma;
 import android.telephony.CellSignalStrengthGsm;
 import android.telephony.CellSignalStrengthLte;
 import android.telephony.CellSignalStrengthTdscdma;
 import android.telephony.CellSignalStrengthWcdma;
+import android.telephony.CellSignalStrengthNr;
 import android.telephony.ModemActivityInfo;
 import android.telephony.NeighboringCellInfo;
 import android.telephony.ServiceState;
@@ -99,6 +103,7 @@ import android.util.SparseArray;
 import android.util.SparseIntArray;
 
 import com.android.internal.net.LegacyVpnInfo;
+import com.android.modules.utils.build.SdkLevel;
 
 import com.googlecode.android_scripting.ConvertUtils;
 import com.googlecode.android_scripting.Log;
@@ -376,6 +381,9 @@ public class JsonBuilder {
         }
         if (data instanceof ServiceState) {
             return buildServiceState((ServiceState) data);
+        }
+        if (data instanceof PersistableBundle) {
+            return buildPersistableBundle((PersistableBundle) data);
         }
 
         return data.toString();
@@ -811,6 +819,8 @@ public class JsonBuilder {
 
         if (data instanceof CellInfoLte) {
             return buildCellInfoLte((CellInfoLte) data, result);
+        } else if (data instanceof CellInfoNr) {
+            return buildCellInfoNr((CellInfoNr) data, result);
         } else if (data instanceof CellInfoWcdma) {
             return buildCellInfoWcdma((CellInfoWcdma) data, result);
         } else if (data instanceof CellInfoTdscdma) {
@@ -839,6 +849,23 @@ public class JsonBuilder {
         result.put("rsrp", signalstrength.getDbm());
         result.put("asulevel", signalstrength.getAsuLevel());
         result.put("timing_advance", signalstrength.getTimingAdvance());
+        return result;
+    }
+
+    private static JSONObject buildCellInfoNr(CellInfoNr data, JSONObject result)
+            throws JSONException {
+        result.put("rat", "nr");
+        CellIdentityNr cellidentity = (CellIdentityNr)data.getCellIdentity();
+        CellSignalStrengthNr signalstrength = (CellSignalStrengthNr)data.getCellSignalStrength();
+        result.put("mcc_string", cellidentity.getMccString());
+        result.put("mnc_string", cellidentity.getMncString());
+        result.put("band", cellidentity.getBands());
+        result.put("arfcn", cellidentity.getNrarfcn());
+        result.put("cid", cellidentity.getNci());
+        result.put("pcid", cellidentity.getPci());
+        result.put("tac", cellidentity.getTac());
+        result.put("rsrp", signalstrength.getDbm());
+        result.put("asulevel", signalstrength.getAsuLevel());
         return result;
     }
 
@@ -1150,24 +1177,26 @@ public class JsonBuilder {
         config.put("ClientControlByUserEnabled", data.isClientControlByUserEnabled());
         config.put("AllowedClientList", build(data.getAllowedClientList()));
         config.put("BlockedClientList", build(data.getBlockedClientList()));
-        config.put("apBands", buildJSONArray(
-                IntStream.of(data.getBands()).boxed().toArray(Integer[]::new)));
-        SparseIntArray channels = data.getChannels();
-        int[] channelFrequencies = new int[channels.size()];
-        for (int i = 0; i < channels.size(); i++) {
-            int channel = channels.valueAt(i);
-            channelFrequencies[i] = channel == 0 ? 0
-                    : ScanResult.convertChannelToFrequencyMhzIfSupported(
-                    channel, apBand2wifiScannerBand(channels.keyAt(i)));
+        if (SdkLevel.isAtLeastS()) {
+            config.put("apBands", buildJSONArray(
+                    IntStream.of(data.getBands()).boxed().toArray(Integer[]::new)));
+            SparseIntArray channels = data.getChannels();
+            int[] channelFrequencies = new int[channels.size()];
+            for (int i = 0; i < channels.size(); i++) {
+                int channel = channels.valueAt(i);
+                channelFrequencies[i] = channel == 0 ? 0
+                        : ScanResult.convertChannelToFrequencyMhzIfSupported(
+                        channel, apBand2wifiScannerBand(channels.keyAt(i)));
+            }
+            if (channelFrequencies.length != 0) {
+                config.put("apChannelFrequencies", build(
+                        IntStream.of(channelFrequencies).boxed().toArray(Integer[]::new)));
+            }
+            config.put("MacRandomizationSetting", build(data.getMacRandomizationSetting()));
+            config.put("BridgedModeOpportunisticShutdownEnabled",
+                    build(data.isBridgedModeOpportunisticShutdownEnabled()));
+            config.put("Ieee80211axEnabled", build(data.isIeee80211axEnabled()));
         }
-        if (channelFrequencies.length != 0) {
-            config.put("apChannelFrequencies", build(
-                    IntStream.of(channelFrequencies).boxed().toArray(Integer[]::new)));
-        }
-        config.put("MacRandomizationSetting", build(data.getMacRandomizationSetting()));
-        config.put("BridgedModeOpportunisticShutdownEnabled",
-                build(data.isBridgedModeOpportunisticShutdownEnabled()));
-        config.put("Ieee80211axEnabled", build(data.isIeee80211axEnabled()));
         return config;
     }
 
@@ -1338,9 +1367,11 @@ public class JsonBuilder {
         Log.d("build softAp info.");
         info.put("frequency", data.getFrequency());
         info.put("bandwidth", data.getBandwidth());
-        info.put("wifiStandard", data.getWifiStandard());
         info.put("autoShutdownTimeoutMillis", data.getAutoShutdownTimeoutMillis());
-        info.put("bssid", data.getBssid());
+        if (SdkLevel.isAtLeastS()) {
+            info.put("wifiStandard", data.getWifiStandard());
+            info.put("bssid", data.getBssid());
+        }
         return info;
     }
 
@@ -1531,6 +1562,15 @@ public class JsonBuilder {
         info.put("TxTimeMs", build(txPowerDurations));
         info.put("RxTimeMs", modemInfo.getReceiveTimeMillis());
         return info;
+    }
+
+    private static JSONObject buildPersistableBundle(
+            PersistableBundle bundle) throws JSONException {
+        JSONObject result = new JSONObject();
+        for (String key : bundle.keySet()) {
+            result.put(key, build(bundle.get(key)));
+        }
+        return result;
     }
 
     private static JSONObject buildSignalStrength(SignalStrength signalStrength)

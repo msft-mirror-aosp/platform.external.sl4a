@@ -1494,6 +1494,11 @@ public class WifiManagerFacade extends RpcReceiver {
         return mWifi.isStaConcurrencyForRestrictedConnectionsSupported();
     }
 
+    @Rpc(description = "Check if the chipset supports a certain Wi-Fi standard.", returns = "true if standard is supported")
+    public Boolean wifiIsWifiStandardSupported(@RpcParameter(name = "standard") Integer standard) {
+        return mWifi.isWifiStandardSupported(standard);
+    }
+
     @Rpc(description = "Return true if WiFi is enabled.")
     public Boolean wifiGetisWifiEnabled() {
         return mWifi.isWifiEnabled();
@@ -1762,40 +1767,43 @@ public class WifiManagerFacade extends RpcReceiver {
         configBuilder.setAllowedClientList(allowedClientList);
         configBuilder.setBlockedClientList(blockedClientList);
 
-        if (configJson.has("apBands")) {
-            JSONArray jBands = configJson.getJSONArray("apBands");
-            int[] bands = convertJSONArrayToIntArray(jBands);
-            configBuilder.setBands(bands);
-        }
+        if (SdkLevel.isAtLeastS()) {
+            if (configJson.has("apBands")) {
+                JSONArray jBands = configJson.getJSONArray("apBands");
+                int[] bands = convertJSONArrayToIntArray(jBands);
+                configBuilder.setBands(bands);
+            }
 
-        if (configJson.has("apChannelFrequencies")) {
-            JSONArray jChannelFrequencys = configJson.getJSONArray("apChannelFrequencies");
-            int[] channelFrequencies = convertJSONArrayToIntArray(jChannelFrequencys);
-            SparseIntArray channels = new SparseIntArray();
-            for (int channelFrequency : channelFrequencies) {
-                if (channelFrequency != 0) {
-                    channels.put(getApBandFromChannelFrequency(channelFrequency),
-                            ScanResult.convertFrequencyMhzToChannelIfSupported(channelFrequency));
+            if (configJson.has("apChannelFrequencies")) {
+                JSONArray jChannelFrequencys = configJson.getJSONArray("apChannelFrequencies");
+                int[] channelFrequencies = convertJSONArrayToIntArray(jChannelFrequencys);
+                SparseIntArray channels = new SparseIntArray();
+                for (int channelFrequency : channelFrequencies) {
+                    if (channelFrequency != 0) {
+                        channels.put(getApBandFromChannelFrequency(channelFrequency),
+                                ScanResult.convertFrequencyMhzToChannelIfSupported(
+                                        channelFrequency));
+                    }
+                }
+                if (channels.size() != 0) {
+                    configBuilder.setChannels(channels);
                 }
             }
-            if (channels.size() != 0) {
-                configBuilder.setChannels(channels);
+
+            if (configJson.has("MacRandomizationSetting")) {
+                configBuilder.setMacRandomizationSetting(
+                        configJson.getInt("MacRandomizationSetting"));
+            }
+
+            if (configJson.has("BridgedModeOpportunisticShutdownEnabled")) {
+                configBuilder.setBridgedModeOpportunisticShutdownEnabled(
+                        configJson.getBoolean("BridgedModeOpportunisticShutdownEnabled"));
+            }
+
+            if (configJson.has("Ieee80211axEnabled")) {
+                configBuilder.setIeee80211axEnabled(configJson.getBoolean("Ieee80211axEnabled"));
             }
         }
-
-        if (configJson.has("MacRandomizationSetting")) {
-            configBuilder.setMacRandomizationSetting(configJson.getInt("MacRandomizationSetting"));
-        }
-
-        if (configJson.has("BridgedModeOpportunisticShutdownEnabled")) {
-            configBuilder.setBridgedModeOpportunisticShutdownEnabled(
-                    configJson.getBoolean("BridgedModeOpportunisticShutdownEnabled"));
-        }
-
-        if (configJson.has("Ieee80211axEnabled")) {
-            configBuilder.setIeee80211axEnabled(configJson.getBoolean("Ieee80211axEnabled"));
-        }
-
         return configBuilder.build();
     }
 
