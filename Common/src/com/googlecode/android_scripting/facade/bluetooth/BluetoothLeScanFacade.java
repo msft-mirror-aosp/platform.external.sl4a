@@ -44,6 +44,7 @@ import com.googlecode.android_scripting.rpc.Rpc;
 import com.googlecode.android_scripting.rpc.RpcOptional;
 import com.googlecode.android_scripting.rpc.RpcParameter;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -893,6 +894,40 @@ public class BluetoothLeScanFacade extends RpcReceiver {
             @RpcParameter(name = "irk") String irk
     ) {
         mScanFilterBuilder.setDeviceAddress(macAddress, addressType, irk.getBytes());
+    }
+
+    /**
+     * Add filter "macAddress", "addressType", and "irk" to existing ScanFilter
+     *
+     * @param macAddress the macAddress to filter against
+     * @param addressType the type of macAddress to filter against
+     * @param irk IRK for address resolution in hex format
+     * @throws Exception
+     */
+    @Rpc(description =
+            "Add filter \"macAddress\", \"addressType\", and \"irk\" to existing ScanFilter")
+    public void bleSetScanFilterDeviceAddressTypeAndIrkHexString(
+            @RpcParameter(name = "macAddress") String macAddress,
+            @RpcParameter(name = "addressType") Integer addressType,
+            @RpcParameter(name = "irk") String irk
+    ) throws UnsupportedEncodingException {
+        mScanFilterBuilder.setDeviceAddress(macAddress, addressType, hexStringToByteArray(irk));
+    }
+
+    private static byte[] hexStringToByteArray(String s) {
+        if (s == null) {
+            throw new IllegalArgumentException("Hex String must not be null");
+        }
+        int len = s.length();
+        if ((len % 2) != 0 || len < 1) { // Multiple of 2 or empty
+            throw new IllegalArgumentException("Hex String must be an even number > 0");
+        }
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((byte) (Character.digit(s.charAt(i), 16) << 4)
+                + (byte) Character.digit(s.charAt(i + 1), 16));
+        }
+        return data;
     }
 
     /**
