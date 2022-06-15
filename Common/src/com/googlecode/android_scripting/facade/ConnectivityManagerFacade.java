@@ -42,7 +42,6 @@ import android.net.wifi.WifiNetworkSpecifier;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.provider.Settings;
-import android.telephony.TelephonyManager;
 
 import com.android.modules.utils.build.SdkLevel;
 
@@ -404,7 +403,6 @@ public class ConnectivityManagerFacade extends RpcReceiver {
     private final ConnectivityReceiver mConnectivityReceiver;
     private final EventFacade mEventFacade;
     private NetworkCallback mNetworkCallback;
-    private TelephonyManager mTelephonyManager;
     private static HashMap<String, NetworkCallback> mNetworkCallbackMap =
             new HashMap<String, NetworkCallback>();
     private boolean mTrackingConnectivityStateChange;
@@ -420,7 +418,6 @@ public class ConnectivityManagerFacade extends RpcReceiver {
         mEventFacade = manager.getReceiver(EventFacade.class);
         mConnectivityReceiver = new ConnectivityReceiver();
         mTrackingConnectivityStateChange = false;
-        mTelephonyManager = (TelephonyManager) mService.getSystemService(Context.TELEPHONY_SERVICE);
     }
 
     @Rpc(description = "Listen for connectivity changes")
@@ -720,7 +717,13 @@ public class ConnectivityManagerFacade extends RpcReceiver {
     @Rpc(description = "Checks data roaming mode setting.",
             returns = "True if data roaming mode is enabled.")
     public Boolean connectivityCheckDataRoamingMode() {
-        return mTelephonyManager.isDataRoamingEnabled();
+        try {
+            return Settings.Global.getInt(mService.getContentResolver(),
+                    Settings.Global.DATA_ROAMING) == DATA_ROAMING_ON;
+        } catch (Settings.SettingNotFoundException e) {
+            Log.e("Settings.Global.DATA_ROAMING not found!");
+            return false;
+        }
     }
 
     /**
