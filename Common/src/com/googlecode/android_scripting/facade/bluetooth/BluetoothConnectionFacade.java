@@ -698,6 +698,8 @@ public class BluetoothConnectionFacade extends RpcReceiver {
                 return mPbapClientProfile.bluetoothPbapClientGetConnectedDevices();
             case BluetoothProfile.MAP_CLIENT:
                 return mMapClientProfile.bluetoothMapClientGetConnectedDevices();
+            case BluetoothProfile.HID_HOST:
+                return mHidProfile.bluetoothHidGetConnectedDevices();
             default:
                 Log.w("Profile id " + profileId + " is not yet supported.");
                 return new ArrayList<BluetoothDevice>();
