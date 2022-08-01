@@ -32,6 +32,7 @@ import android.telephony.CellInfo;
 import android.telephony.CellLocation;
 import android.telephony.NeighboringCellInfo;
 import android.telephony.PhoneStateListener;
+import android.telephony.RadioAccessFamily;
 import android.telephony.ServiceState;
 import android.telephony.SignalStrength;
 import android.telephony.SubscriptionManager;
@@ -190,7 +191,10 @@ public class TelephonyManagerFacade extends RpcReceiver {
     @Rpc(description = "Get network preference for subscription.")
     public String telephonyGetPreferredNetworkTypesForSubscription(
             @RpcParameter(name = "subId") Integer subId) {
-        int networkPreferenceInt = mTelephonyManager.getPreferredNetworkType(subId);
+        int networkPreferenceInt =
+            RadioAccessFamily.getNetworkTypeFromRaf(
+                (int) mTelephonyManager.createForSubscriptionId(
+                    subId).getAllowedNetworkTypesBitmask());
         return TelephonyUtils.getNetworkModeStringfromInt(networkPreferenceInt);
     }
 
