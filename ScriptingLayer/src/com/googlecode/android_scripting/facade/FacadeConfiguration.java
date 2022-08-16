@@ -52,6 +52,7 @@ import com.googlecode.android_scripting.facade.telephony.CellBroadcastReceiverFa
 import com.googlecode.android_scripting.facade.telephony.ImsManagerFacade;
 import com.googlecode.android_scripting.facade.telephony.ImsMmTelManagerFacade;
 import com.googlecode.android_scripting.facade.telephony.ProvisioningManagerFacade;
+import com.googlecode.android_scripting.facade.telephony.RcsFacade;
 import com.googlecode.android_scripting.facade.telephony.SmsFacade;
 import com.googlecode.android_scripting.facade.telephony.SubscriptionManagerFacade;
 import com.googlecode.android_scripting.facade.telephony.TelecomCallFacade;
@@ -181,6 +182,7 @@ public class FacadeConfiguration {
 
         if (sSdkLevel >= 31) {
             sFacadeClassList.add(UwbManagerFacade.class);
+            sFacadeClassList.add(RcsFacade.class);
         }
 
         for (Class<? extends RpcReceiver> recieverClass : sFacadeClassList) {
