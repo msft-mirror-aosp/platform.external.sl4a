@@ -151,9 +151,9 @@ public class BluetoothHidDeviceFacade extends RpcReceiver {
 
     // HID mouse movement
     private static final byte[] RIGHT = {0, 1, 0, 0};
-    private static final byte[] DOWN = {0, 0, -1, 0};
+    private static final byte[] DOWN = {0, 0, 1, 0};
     private static final byte[] LEFT = {0, -1, 0, 0};
-    private static final byte[] UP = {0, 0, 1, 0};
+    private static final byte[] UP = {0, 0, -1, 0};
 
     // Default values.
     private static final int QOS_TOKEN_RATE = 800; // 9 bytes * 1000000 us / 11250 us
