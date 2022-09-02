@@ -17,6 +17,7 @@
 package com.googlecode.android_scripting.facade.bluetooth;
 
 import android.app.Service;
+import android.bluetooth.BluetoothActivityEnergyInfo;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
@@ -38,6 +39,7 @@ import com.googlecode.android_scripting.rpc.RpcDefault;
 import com.googlecode.android_scripting.rpc.RpcOptional;
 import com.googlecode.android_scripting.rpc.RpcParameter;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -45,6 +47,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -234,9 +237,17 @@ public class BluetoothFacade extends RpcReceiver {
                                       + "during which the device should be discoverable")
             @RpcDefault("300000")
             Long duration) {
-        Log.d("Making discoverable for " + duration + " milliseconds.\n");
-        mBluetoothAdapter.setScanMode(
-                BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE, duration);
+        Duration finalDuration = Duration.ofMillis(duration);
+        if (finalDuration.toSeconds() <= Integer.MAX_VALUE) {
+            mBluetoothAdapter.setDiscoverableTimeout(finalDuration);
+            mBluetoothAdapter.setScanMode(
+                    BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE);
+            Log.d("Making discoverable for " + duration + " milliseconds.\n");
+        } else {
+            Log.e("setScanMode: Duration in seconds outside of the bounds of an int");
+            throw new IllegalArgumentException("Duration not in bounds. In seconds, the "
+                    + "duration must be in the range of an int");
+        }
     }
 
     @Rpc(description = "Requests that the device be not discoverable.")
@@ -389,7 +400,32 @@ public class BluetoothFacade extends RpcReceiver {
     @Rpc(description = "Get Bluetooth controller activity energy info.")
     public String bluetoothGetControllerActivityEnergyInfo() {
         SynchronousResultReceiver receiver = new SynchronousResultReceiver();
-        mBluetoothAdapter.requestControllerActivityEnergyInfo(receiver);
+        mBluetoothAdapter.requestControllerActivityEnergyInfo(
+                new Executor() {
+                    @Override
+                    public void execute(Runnable runnable) {
+                        runnable.run();
+                    }
+                },
+                new BluetoothAdapter.OnBluetoothActivityEnergyInfoCallback() {
+                    @Override
+                    public void onBluetoothActivityEnergyInfoAvailable(
+                            BluetoothActivityEnergyInfo info) {
+                        Bundle bundle = new Bundle();
+                        bundle.putParcelable(
+                                BatteryStats.RESULT_RECEIVER_CONTROLLER_KEY, info);
+                        receiver.send(0, bundle);
+                    }
+
+                    @Override
+                    public void onBluetoothActivityEnergyInfoError(int errorCode) {
+                        Bundle bundle = new Bundle();
+                        bundle.putParcelable(
+                                BatteryStats.RESULT_RECEIVER_CONTROLLER_KEY, null);
+                        receiver.send(0, bundle);
+                    }
+                }
+        );
         try {
             SynchronousResultReceiver.Result result = receiver.awaitResult(1000);
             if (result.bundle != null) {
