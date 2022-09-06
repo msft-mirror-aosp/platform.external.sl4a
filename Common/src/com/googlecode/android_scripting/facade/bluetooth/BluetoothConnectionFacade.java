@@ -576,11 +576,15 @@ public class BluetoothConnectionFacade extends RpcReceiver {
 
     @Rpc(description = "Bluetooth init Bond by Mac Address")
     public boolean bluetoothBond(@RpcParameter(name = "macAddress") String macAddress) {
+        mContext.registerReceiver(new BondBroadcastReceiver(),
+                new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
         return mBluetoothAdapter.getRemoteDevice(macAddress).createBond();
     }
 
     @Rpc(description = "Bluetooth init LE Bond by Mac Address")
     public boolean bluetoothLeBond(@RpcParameter(name = "macAddress") String macAddress) {
+        mContext.registerReceiver(new BondBroadcastReceiver(),
+                new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
         return mBluetoothAdapter.getRemoteDevice(macAddress).createBond(BluetoothDevice.TRANSPORT_LE);
     }
 
