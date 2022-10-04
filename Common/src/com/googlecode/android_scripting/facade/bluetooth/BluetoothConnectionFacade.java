@@ -576,11 +576,15 @@ public class BluetoothConnectionFacade extends RpcReceiver {
 
     @Rpc(description = "Bluetooth init Bond by Mac Address")
     public boolean bluetoothBond(@RpcParameter(name = "macAddress") String macAddress) {
+        mContext.registerReceiver(new BondBroadcastReceiver(),
+                new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
         return mBluetoothAdapter.getRemoteDevice(macAddress).createBond();
     }
 
     @Rpc(description = "Bluetooth init LE Bond by Mac Address")
     public boolean bluetoothLeBond(@RpcParameter(name = "macAddress") String macAddress) {
+        mContext.registerReceiver(new BondBroadcastReceiver(),
+                new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
         return mBluetoothAdapter.getRemoteDevice(macAddress).createBond(BluetoothDevice.TRANSPORT_LE);
     }
 
@@ -631,27 +635,34 @@ public class BluetoothConnectionFacade extends RpcReceiver {
     }
 
     /**
-     * Bond to a device using Out of Band Data.
+     * Bond to a device using Out of Band Data over LE transport.
      *
      * @param address String representation of address like "00:11:22:33:44:55"
      * @param transport String "1", "2", "3" to match TRANSPORT_*
      * @param c Hex String of the 16 octet confirmation
      * @param r Hex String of the 16 octet randomizer
+     * @param addressType type of address provided to match BluetoothDevice#ADDRESS_TYPE_*
      */
-    @Rpc(description = "Creates and Out of Band bond.")
-    public void bluetoothCreateBondOutOfBand(@RpcParameter(name = "address") String address,
-            @RpcParameter(name = "transport") String transport,
-            @RpcParameter(name = "c") String c, @RpcParameter(name = "r") String r) {
-        Log.d("bluetoothCreateBondOutOfBand(" + address + ", " + transport + "," + c + ", "
+    @Rpc(description = "Creates and Out of Band LE bond.")
+    public void bluetoothCreateLeBondOutOfBand(@RpcParameter(name = "address") String address,
+            @RpcParameter(name = "c") String c, @RpcParameter(name = "r") String r,
+            @RpcParameter(name = "addressType") @RpcDefault("1") Integer addressType) {
+        Log.d("bluetoothCreateLeBondOutOfBand(" + address + ", " + addressType + "," + c + ", "
                 + r + ")");
-        BluetoothDevice remoteDevice = mBluetoothAdapter.getRemoteDevice(address);
+        BluetoothDevice remoteDevice = mBluetoothAdapter.getRemoteLeDevice(address, addressType);
         byte[] addressBytes = new byte[7];
         int i = 0;
         for (String s : address.split(":")) {
             addressBytes[i] = hexStringToByteArray(s)[0];
             i++;
         }
-        addressBytes[i] = 0x01;
+
+        // Inserts the address type if one is provided
+        if (addressType == BluetoothDevice.ADDRESS_TYPE_PUBLIC
+                || addressType == BluetoothDevice.ADDRESS_TYPE_RANDOM) {
+            addressBytes[i] = addressType.byteValue();
+        }
+
         OobData p192 = null;
         OobData p256 = new OobData.LeBuilder(hexStringToByteArray(c),
                 addressBytes, OobData.LE_DEVICE_ROLE_BOTH_PREFER_CENTRAL)
@@ -659,7 +670,7 @@ public class BluetoothConnectionFacade extends RpcReceiver {
                 .build();
         mContext.registerReceiver(new BondBroadcastReceiver(),
                 new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
-        remoteDevice.createBondOutOfBand(Integer.parseInt(transport), p192, p256);
+        remoteDevice.createBondOutOfBand(BluetoothDevice.TRANSPORT_LE, p192, p256);
     }
 
     private class BondBroadcastReceiver extends BroadcastReceiver {
