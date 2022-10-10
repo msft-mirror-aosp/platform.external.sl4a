@@ -759,11 +759,17 @@ public class BluetoothConnectionFacade extends RpcReceiver {
             @RpcParameter(name = "deviceID",
                     description = "Name or MAC address of a bluetooth device.")
                     String deviceID) throws Exception {
-        BluetoothDevice mDevice = BluetoothFacade.getDevice(mBluetoothAdapter.getBondedDevices(),
-                deviceID);
-        mContext.registerReceiver(new BondBroadcastReceiver(),
-                new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
-        return mDevice.removeBond();
+        // We don't want to crash the test if the test passes an address that cannot be found.
+        try {
+            BluetoothDevice mDevice = BluetoothFacade.getDevice(
+                    mBluetoothAdapter.getBondedDevices(), deviceID);
+            mContext.registerReceiver(new BondBroadcastReceiver(),
+                    new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
+            return mDevice.removeBond();
+        } catch (Exception e) {
+            Log.d("Failed to find the device by deviceId");
+            return false;
+        }
     }
 
     @Rpc(description = "Connect to a device that is already bonded.")
