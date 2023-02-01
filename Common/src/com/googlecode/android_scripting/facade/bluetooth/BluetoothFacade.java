@@ -39,6 +39,7 @@ import com.googlecode.android_scripting.rpc.RpcDefault;
 import com.googlecode.android_scripting.rpc.RpcOptional;
 import com.googlecode.android_scripting.rpc.RpcParameter;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -236,9 +237,17 @@ public class BluetoothFacade extends RpcReceiver {
                                       + "during which the device should be discoverable")
             @RpcDefault("300000")
             Long duration) {
-        Log.d("Making discoverable for " + duration + " milliseconds.\n");
-        mBluetoothAdapter.setScanMode(
-                BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE, duration);
+        Duration finalDuration = Duration.ofMillis(duration);
+        if (finalDuration.toSeconds() <= Integer.MAX_VALUE) {
+            mBluetoothAdapter.setDiscoverableTimeout(finalDuration);
+            mBluetoothAdapter.setScanMode(
+                    BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE);
+            Log.d("Making discoverable for " + duration + " milliseconds.\n");
+        } else {
+            Log.e("setScanMode: Duration in seconds outside of the bounds of an int");
+            throw new IllegalArgumentException("Duration not in bounds. In seconds, the "
+                    + "duration must be in the range of an int");
+        }
     }
 
     @Rpc(description = "Requests that the device be not discoverable.")
