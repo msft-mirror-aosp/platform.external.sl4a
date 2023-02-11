@@ -244,6 +244,8 @@ public class TelephonyConstants {
     public static final String TELEPHONY_STATE_IDLE = "IDLE";
     public static final String TELEPHONY_STATE_OFFHOOK = "OFFHOOK";
     public static final String TELEPHONY_STATE_UNKNOWN = "UNKNOWN";
+    public static final String TELEPHONY_STATE_PLAY_AUDIO_END = "PLAYAUDIOEND";
+    public static final String TELEPHONY_STATE_PLAY_AUDIO_FAIL = "PLAYAUDIOFAIL";
 
     /**
      * Constant for TTY Mode
@@ -401,6 +403,7 @@ public class TelephonyConstants {
     public static final String EventSrvccStateChanged = "SrvccStateChanged";
     public static final String EventMessageWaitingIndicatorChanged = "MessageWaitingIndicatorChanged";
     public static final String EventPhysicalChannelConfigChanged = "PhysicalChannelConfigChanged";
+    public static final String EventCallPlayAudioStateChanged = "CallPlayAudioStateChanged";
 
     /**
      * Constants for OnStartTetheringCallback
