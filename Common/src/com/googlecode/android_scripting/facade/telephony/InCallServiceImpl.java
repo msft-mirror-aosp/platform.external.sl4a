@@ -16,11 +16,15 @@
 
 package com.googlecode.android_scripting.facade.telephony;
 
+import static com.googlecode.android_scripting.facade.telephony.InCallServiceImpl.HandleVoiceThreadState.TERMINATE;
+import static com.googlecode.android_scripting.facade.telephony.InCallServiceImpl.HandleVoiceThreadState.RUN;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
+import java.io.File;
 
+import android.content.Context;
 import android.telecom.Call;
 import android.telecom.Call.Details;
 import android.telecom.CallAudioState;
@@ -30,6 +34,8 @@ import android.telecom.Phone;
 import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
 import android.telecom.VideoProfile.CameraCapabilities;
+import android.media.AudioDeviceInfo;
+import android.media.AudioManager;
 
 import com.googlecode.android_scripting.Log;
 
@@ -38,6 +44,22 @@ import com.googlecode.android_scripting.facade.EventFacade;
 public class InCallServiceImpl extends InCallService {
 
     private static InCallServiceImpl sService = null;
+
+    private static PlayAudioInCall playAudioInCall;
+
+    // The call is to play an audio file or record voice during a call
+    private static Call playRecordCall = null;
+
+    // A telephony device to route voice through mobile telphony network
+    private static AudioDeviceInfo audioTelephonyInfo = null;
+
+    // Indicates if the call is playing or recording audio or not
+    private static HandleVoiceThreadState playRecordAudioInCallState = TERMINATE;
+
+    private static AudioManager mAudioManager = null;
+
+    // The audio file is to play audio on the route of telephony network
+    private static File audioFile;
 
     public static InCallServiceImpl getService() {
         return sService;
@@ -542,6 +564,14 @@ public class InCallServiceImpl extends InCallService {
         }
     }
 
+    /** Indicates and controls the state of the audio playing or voice recording thread. */
+    enum HandleVoiceThreadState {
+        /** The audio playing/voice recording thread is terminated. */
+        TERMINATE,
+        /** The audio playing/voice recording thread is running. */
+        RUN
+    }
+
     /*
      * TODO: b/26272583 Refactor so that these are instance members of the
      * incallservice. Then we can perform null checks using the design pattern
@@ -560,6 +590,10 @@ public class InCallServiceImpl extends InCallService {
         CallCallback callCallback = new CallCallback(id, CallCallback.EVENT_NONE);
 
         call.registerCallback(callCallback);
+        // Make sure the first call is used to play or record voice
+        if (playRecordCall == null) {
+            playRecordCall = call;
+        }
 
         VideoCall videoCall = call.getVideoCall();
         VideoCallCallback videoCallCallback = null;
@@ -590,6 +624,7 @@ public class InCallServiceImpl extends InCallService {
          */
         if (sService == null) {
             sService = this;
+            mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         }
         else if (sService != this) {
             Log.e("Multiple InCall Services Active in SL4A!");
@@ -605,6 +640,12 @@ public class InCallServiceImpl extends InCallService {
         Log.d("Removing " + id);
 
         mCallContainerMap.remove(id);
+
+        if (getCallId(call).equals(getCallId(playRecordCall))) {
+            Log.d("Terminate the call for playing/recording.");
+            playRecordAudioInCallState = TERMINATE;
+            playRecordCall = null;
+        }
 
         CallListener.onCallRemoved(id, call);
 
@@ -1448,6 +1489,74 @@ public class InCallServiceImpl extends InCallService {
         }
 
         return propertyList;
+    }
+
+    /**
+     * Plays an audio file specified by {@code audioFileName} during a phone call.
+     *
+     * The method first checks if {@link #Call}, {@code audioFileName} and {@link #AudioDeviceInfo}
+     * exist. Finally, it creates a {@link #PlayAudioInCall} which creates a thread to perform
+     * audio playing.
+     * The method is called by {@link TelephonyManagerFacade#telephonyPlayAudioFile()}.
+     *
+     * @return {@code true} if the audio file is successfully played. Otherwise, {@code false}
+     */
+    public static boolean playAudioFile(String audioFileName) {
+        Log.d(String.format("Playing audio file \"%s\"...", audioFileName));
+        if (playRecordAudioInCallState.equals(RUN)) {
+            Log.d("Playing/Recording is ongoing!");
+            return false;
+        }
+        if (getService() == null) {
+            Log.d("InCallService isn't activated yet");
+            return false;
+        }
+        audioTelephonyInfo = getAudioDeviceInfo();
+        if (audioTelephonyInfo == null) {
+            Log.d("No Telephony AudioDeviceInfo!");
+            return false;
+        }
+        audioFile = new File(getService().getFilesDir(), audioFileName);
+        if (!audioFile.exists()) {
+            Log.d(String.format("%s not found in files folder!",audioFileName));
+            return false;
+        }
+        playAudioInCall = new PlayAudioInCall(mEventFacade,
+            playRecordCall, audioFile, audioTelephonyInfo);
+        playRecordAudioInCallState = RUN;
+        return playAudioInCall.playAudioFile();
+    }
+
+    /** Gets the audio telephony device during in a call.
+     *
+     * @return null if not found audio telephony device. Otherwise, an instance of
+     * {@link #AudioDeviceInfo}
+     * */
+    public static AudioDeviceInfo getAudioDeviceInfo() {
+        AudioDeviceInfo[] audioDeviceInfoList = mAudioManager.getDevices(
+            AudioManager.GET_DEVICES_OUTPUTS);
+        for (AudioDeviceInfo info : audioDeviceInfoList) {
+            if (info.getType() == AudioDeviceInfo.TYPE_TELEPHONY) {
+                Log.d(String.format("Found audio telephony device: %d", info.getType()));
+                return info;
+            }
+        }
+        return null;
+    }
+
+    public static HandleVoiceThreadState getPlayRecordAudioInCallState() {
+        return playRecordAudioInCallState;
+    }
+
+    public static void setPlayRecordAudioInCallState(HandleVoiceThreadState state) {
+        playRecordAudioInCallState = state;
+    }
+
+    public static void stopPlayAudioFile() {
+        if (playRecordAudioInCallState.equals(RUN) && playAudioInCall != null) {
+            Log.d("Stop playing audio successfully!");
+            playRecordAudioInCallState = TERMINATE;
+        }
     }
 
     public static String getCallPresentationInfoString(int presentation) {
