@@ -1517,6 +1517,25 @@ public class TelephonyManagerFacade extends RpcReceiver {
     }
 
     /**
+     * Plays an audio file specified by {@code audioFileName} during a phone call.
+     *
+     * @return {@code true} if the audio file is successfully played.
+     */
+    @Rpc(description = "Plays the specified audio file during a phone call")
+    public boolean telephonyPlayAudioFile(
+        @RpcParameter(name = "audioFileName") String audioFileName) {
+        Log.d(String.format("Playing audio file \"%s\"...", audioFileName));
+        InCallServiceImpl.setEventFacade(mEventFacade);
+        return InCallServiceImpl.playAudioFile(audioFileName);
+    }
+
+    /** Stops playing an audio file during a call. */
+    @Rpc(description = "Stops playing audio file during a phone call")
+    public void telephonyStopPlayingAudioFile() {
+        InCallServiceImpl.stopPlayAudioFile();
+    }
+
+    /**
      * Get the list of Forbidden PLMNs stored on the USIM
      * profile of the SIM for the default subscription.
      */
