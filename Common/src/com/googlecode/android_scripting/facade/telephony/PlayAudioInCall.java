@@ -90,6 +90,7 @@ public class PlayAudioInCall {
       byte[] audioRaw = new byte[512];
       int readBytes;
       try {
+        InCallServiceImpl.setPlayAudioInCallState(RUN);
         InCallServiceImpl.muteCall(true);
         InputStream inputStream = new FileInputStream(audioFile);
         inputStream.read(audioRaw, 0, 44);
@@ -104,8 +105,6 @@ public class PlayAudioInCall {
         inputStream.close();
         audioTrack.stop();
         audioTrack.release();
-        InCallServiceImpl.setPlayRecordAudioInCallState(TERMINATE);
-        InCallServiceImpl.muteCall(false);
         eventFacade.postEvent(TelephonyConstants.EventCallPlayAudioStateChanged,
             new InCallServiceImpl.CallEvent<String>(InCallServiceImpl.getCallId(call),
                 TelephonyConstants.TELEPHONY_STATE_PLAY_AUDIO_END));
@@ -116,6 +115,10 @@ public class PlayAudioInCall {
         eventFacade.postEvent(TelephonyConstants.EventCallPlayAudioStateChanged,
             new InCallServiceImpl.CallEvent<String>(InCallServiceImpl.getCallId(call),
                 TelephonyConstants.TELEPHONY_STATE_PLAY_AUDIO_FAIL));
+      }
+      finally {
+        InCallServiceImpl.muteCall(false);
+        InCallServiceImpl.setPlayAudioInCallState(TERMINATE);
       }
     });
     playAudioThread.start();
@@ -174,7 +177,7 @@ public class PlayAudioInCall {
   }
 
   private boolean stopPlayAudio() {
-    if (InCallServiceImpl.getPlayRecordAudioInCallState().equals(RUN)) {
+    if (InCallServiceImpl.getPlayAudioInCallState().equals(RUN)) {
       return false;
     }
     Log.d("Stop playing audio!");

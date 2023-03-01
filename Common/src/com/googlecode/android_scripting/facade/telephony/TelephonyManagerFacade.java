@@ -1523,7 +1523,8 @@ public class TelephonyManagerFacade extends RpcReceiver {
      */
     @Rpc(description = "Plays the specified audio file during a phone call")
     public boolean telephonyPlayAudioFile(
-        @RpcParameter(name = "audioFileName") String audioFileName) {
+        @RpcParameter(name = "audioFileName", description = "the audio file in the app's files folder")
+            String audioFileName) {
         Log.d(String.format("Playing audio file \"%s\"...", audioFileName));
         InCallServiceImpl.setEventFacade(mEventFacade);
         return InCallServiceImpl.playAudioFile(audioFileName);
@@ -1533,6 +1534,33 @@ public class TelephonyManagerFacade extends RpcReceiver {
     @Rpc(description = "Stops playing audio file during a phone call")
     public void telephonyStopPlayingAudioFile() {
         InCallServiceImpl.stopPlayAudioFile();
+    }
+
+    /**
+     * Records voice and writes to a wav file specified by {@code recordFileName}
+     * during a phone call.
+     *
+     * @return {@code true} if voice is successfully recorded
+     */
+    @Rpc(description = "Records voice and writes to a wav file during a phone call")
+    public boolean telephonyRecordVoice(
+        @RpcParameter(name = "recordFileName", description = "The recorded voice file name")
+            String recordFileName,
+        @RpcParameter(name = "sampleRate", description = "sampling rate of voice data")
+        @RpcDefault("16000") Integer sampleRate,
+        @RpcParameter(name = "channelCount", description = "channel number of voice to record")
+        @RpcDefault("1") Integer channelCount,
+        @RpcParameter(name = "cancelNoiseEcho", description = "enable echo canceler and noise suppressor")
+        @RpcDefault("false") Boolean cancelNoiseEcho) {
+        Log.d(String.format("Recording voice to  the \"%s\" file...", recordFileName));
+        InCallServiceImpl.setEventFacade(mEventFacade);
+        return InCallServiceImpl.recordVoice(recordFileName, sampleRate, channelCount, cancelNoiseEcho);
+    }
+
+    /** Stops recording voice during a phone call.*/
+    @Rpc(description = "Stops recording voice during a call.")
+    public void telephonyStopRecordVoice() {
+        InCallServiceImpl.stopRecordVoice();
     }
 
     /**
