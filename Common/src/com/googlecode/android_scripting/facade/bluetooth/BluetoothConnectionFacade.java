@@ -648,7 +648,7 @@ public class BluetoothConnectionFacade extends RpcReceiver {
      * @param addressType the BluetoothDevice.AddressType for the BluetoothDevice object
      */
     @Rpc(description = "Creates and Out of Band LE bond.")
-    public void bluetoothCreateLeBondOutOfBand(
+    public boolean bluetoothCreateLeBondOutOfBand(
             @RpcParameter(name = "oobDataAddress") String oobDataAddress,
             @RpcParameter(name = "oobDataAddressType") Integer oobDataAddressType,
             @RpcParameter(name = "c") String c, @RpcParameter(name = "r") String r,
@@ -677,7 +677,7 @@ public class BluetoothConnectionFacade extends RpcReceiver {
                 .build();
         mContext.registerReceiver(new BondBroadcastReceiver(),
                 new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
-        remoteDevice.createBondOutOfBand(BluetoothDevice.TRANSPORT_LE, p192, p256);
+        return remoteDevice.createBondOutOfBand(BluetoothDevice.TRANSPORT_LE, p192, p256);
     }
 
     private class BondBroadcastReceiver extends BroadcastReceiver {
