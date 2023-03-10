@@ -635,32 +635,39 @@ public class BluetoothConnectionFacade extends RpcReceiver {
     }
 
     /**
-     * Bond to a device using Out of Band Data over LE transport.
+     * Bond to a device using Out of Band Data over LE transport. Note that there is a distinction
+     * between the address with type supplied in the oob data and the address and type of the
+     * BluetoothDevice object.
      *
-     * @param address String representation of address like "00:11:22:33:44:55"
+     * @param oobDataAddress is the MAC address to be used in the oob data
+     * @param oobDataAddressType is the BluetoothDevice.AddressType for the oob data MAC address
      * @param transport String "1", "2", "3" to match TRANSPORT_*
      * @param c Hex String of the 16 octet confirmation
      * @param r Hex String of the 16 octet randomizer
-     * @param addressType type of address provided to match BluetoothDevice#ADDRESS_TYPE_*
+     * @param address String representation of MAC address for the BluetoothDevice object
+     * @param addressType the BluetoothDevice.AddressType for the BluetoothDevice object
      */
     @Rpc(description = "Creates and Out of Band LE bond.")
-    public void bluetoothCreateLeBondOutOfBand(@RpcParameter(name = "address") String address,
+    public boolean bluetoothCreateLeBondOutOfBand(
+            @RpcParameter(name = "oobDataAddress") String oobDataAddress,
+            @RpcParameter(name = "oobDataAddressType") Integer oobDataAddressType,
             @RpcParameter(name = "c") String c, @RpcParameter(name = "r") String r,
+            @RpcParameter(name = "address") String address,
             @RpcParameter(name = "addressType") @RpcDefault("1") Integer addressType) {
         Log.d("bluetoothCreateLeBondOutOfBand(" + address + ", " + addressType + "," + c + ", "
                 + r + ")");
         BluetoothDevice remoteDevice = mBluetoothAdapter.getRemoteLeDevice(address, addressType);
         byte[] addressBytes = new byte[7];
         int i = 0;
-        for (String s : address.split(":")) {
+        for (String s : oobDataAddress.split(":")) {
             addressBytes[i] = hexStringToByteArray(s)[0];
             i++;
         }
 
-        // Inserts the address type if one is provided
-        if (addressType == BluetoothDevice.ADDRESS_TYPE_PUBLIC
-                || addressType == BluetoothDevice.ADDRESS_TYPE_RANDOM) {
-            addressBytes[i] = addressType.byteValue();
+        // Inserts the oob address type if one is provided
+        if (oobDataAddressType == BluetoothDevice.ADDRESS_TYPE_PUBLIC
+                || oobDataAddressType == BluetoothDevice.ADDRESS_TYPE_RANDOM) {
+            addressBytes[i] = oobDataAddressType.byteValue();
         }
 
         OobData p192 = null;
@@ -670,7 +677,7 @@ public class BluetoothConnectionFacade extends RpcReceiver {
                 .build();
         mContext.registerReceiver(new BondBroadcastReceiver(),
                 new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
-        remoteDevice.createBondOutOfBand(BluetoothDevice.TRANSPORT_LE, p192, p256);
+        return remoteDevice.createBondOutOfBand(BluetoothDevice.TRANSPORT_LE, p192, p256);
     }
 
     private class BondBroadcastReceiver extends BroadcastReceiver {
