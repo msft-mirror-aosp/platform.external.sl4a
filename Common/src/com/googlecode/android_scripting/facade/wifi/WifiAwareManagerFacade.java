@@ -413,7 +413,7 @@ public class WifiAwareManagerFacade extends RpcReceiver {
                     new AwareAttachCallbackPostsEvents(sessionId, useIdInCallbackEventName),
                     (identityCb != null && identityCb.booleanValue())
                         ? new AwareIdentityChangeListenerPostsEvents(sessionId,
-                        useIdInCallbackEventName) : null, false);
+                        useIdInCallbackEventName) : null, false, null);
             return sessionId;
         }
     }
