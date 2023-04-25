@@ -617,6 +617,11 @@ public class AndroidFacade extends RpcReceiver {
     return SdkLevel.isAtLeastT();
   }
 
+  @Rpc(description = "Returns whether the device is running SDK at least U")
+  public boolean isSdkAtLeastU() {
+    return SdkLevel.isAtLeastU();
+  }
+
   @Rpc(description = "Returns the current device time.")
   public Long getBuildTime() {
     return Build.TIME;
