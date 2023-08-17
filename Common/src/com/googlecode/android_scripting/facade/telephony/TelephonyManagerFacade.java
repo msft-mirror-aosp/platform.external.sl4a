@@ -1289,7 +1289,7 @@ public class TelephonyManagerFacade extends RpcReceiver {
     public void telephonySetCellInfoListRate(
                 @RpcParameter(name = "rate") Integer rate
             ) {
-        mTelephonyManager.setCellInfoListRate(rate);
+        mTelephonyManager.setCellInfoListRate(rate, SubscriptionManager.getDefaultSubscriptionId());
     }
 
     /**
