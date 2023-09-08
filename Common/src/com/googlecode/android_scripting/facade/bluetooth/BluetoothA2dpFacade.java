@@ -129,8 +129,8 @@ public class BluetoothA2dpFacade extends RpcReceiver {
     */
     public Boolean a2dpDisconnect(BluetoothDevice device) {
         if (sA2dpProfile == null) return false;
-        if (sA2dpProfile.getConnectionPolicy(device) > BluetoothProfile.CONNECTION_POLICY_ALLOWED) {
-            sA2dpProfile.setConnectionPolicy(device, BluetoothProfile.CONNECTION_POLICY_ALLOWED);
+        if (sA2dpProfile.getPriority(device) > BluetoothProfile.PRIORITY_ON) {
+            sA2dpProfile.setPriority(device, BluetoothProfile.PRIORITY_ON);
         }
         return sA2dpProfile.disconnect(device);
     }
@@ -162,7 +162,7 @@ public class BluetoothA2dpFacade extends RpcReceiver {
         BluetoothDevice device =
                 BluetoothFacade.getDevice(mBluetoothAdapter.getBondedDevices(), deviceStr);
         Log.d("Changing priority of device " + device.getAlias() + " p: " + priority);
-        sA2dpProfile.setConnectionPolicy(device, priority);
+        sA2dpProfile.setPriority(device, priority);
     }
 
 
