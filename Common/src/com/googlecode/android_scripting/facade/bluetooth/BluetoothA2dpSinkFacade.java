@@ -101,7 +101,7 @@ public class BluetoothA2dpSinkFacade extends RpcReceiver {
                         mBluetoothAdapter.getBondedDevices(), deviceStr);
         Log.d("Changing priority of device "
                 + device.getAlias() + " p: " + priority);
-        sA2dpSinkProfile.setConnectionPolicy(device, priority);
+        sA2dpSinkProfile.setPriority(device, priority);
     }
 
     /**
@@ -114,11 +114,11 @@ public class BluetoothA2dpSinkFacade extends RpcReceiver {
             @RpcParameter(name = "device", description = "Mac address of a BT device.")
                 String deviceStr)
             throws Exception {
-        if (sA2dpSinkProfile == null) return BluetoothProfile.CONNECTION_POLICY_UNKNOWN;
+        if (sA2dpSinkProfile == null) return BluetoothProfile.PRIORITY_UNDEFINED;
         BluetoothDevice device =
                 BluetoothFacade.getDevice(
                 mBluetoothAdapter.getBondedDevices(), deviceStr);
-        return sA2dpSinkProfile.getConnectionPolicy(device);
+        return sA2dpSinkProfile.getPriority(device);
     }
 
     /**
