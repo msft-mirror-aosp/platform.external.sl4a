@@ -115,7 +115,7 @@ public class BluetoothPbapClientFacade extends RpcReceiver {
                 deviceStr);
         Log.d("Changing priority of device " + device.getAlias()
                 + " p: " + priority);
-        sPbapClientProfile.setPriority(device, priority);
+        sPbapClientProfile.setConnectionPolicy(device, priority);
     }
 
     /**
@@ -128,12 +128,12 @@ public class BluetoothPbapClientFacade extends RpcReceiver {
                 description = "Mac address of a BT device.") String deviceStr)
                 throws Exception {
         if (sPbapClientProfile == null) {
-            return BluetoothProfile.PRIORITY_UNDEFINED;
+            return BluetoothProfile.CONNECTION_POLICY_UNKNOWN;
         }
         BluetoothDevice device =
                 BluetoothFacade.getDevice(mBluetoothAdapter.getBondedDevices(),
                     deviceStr);
-        return sPbapClientProfile.getPriority(device);
+        return sPbapClientProfile.getConnectionPolicy(device);
     }
 
     /**
