@@ -157,8 +157,8 @@ public class BluetoothMapClientFacade extends RpcReceiver {
     }
 
     public Boolean mapDisconnect(BluetoothDevice device) {
-        if (sMapProfile.getPriority(device) > BluetoothProfile.PRIORITY_ON) {
-            sMapProfile.setPriority(device, BluetoothProfile.PRIORITY_ON);
+        if (sMapProfile.getConnectionPolicy(device) > BluetoothProfile.CONNECTION_POLICY_ALLOWED) {
+            sMapProfile.setConnectionPolicy(device, BluetoothProfile.CONNECTION_POLICY_ALLOWED);
         }
         return sMapProfile.disconnect(device);
     }
@@ -182,8 +182,10 @@ public class BluetoothMapClientFacade extends RpcReceiver {
                 connectedMapDevices, deviceID);
         if (!connectedMapDevices.isEmpty()
                 && connectedMapDevices.get(0).equals(mDevice)) {
-            if (sMapProfile.getPriority(mDevice) > BluetoothProfile.PRIORITY_ON) {
-                sMapProfile.setPriority(mDevice, BluetoothProfile.PRIORITY_ON);
+            if (sMapProfile.getConnectionPolicy(mDevice)
+                    > BluetoothProfile.CONNECTION_POLICY_ALLOWED) {
+                sMapProfile.setConnectionPolicy(
+                        mDevice, BluetoothProfile.CONNECTION_POLICY_ALLOWED);
             }
             return sMapProfile.disconnect(mDevice);
         } else {
