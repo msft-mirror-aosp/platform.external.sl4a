@@ -347,7 +347,7 @@ public class BluetoothHidFacade extends RpcReceiver {
                   Integer priority) throws Exception {
         BluetoothDevice device = BluetoothFacade.getDevice(sHidProfile.getConnectedDevices(),
               deviceID);
-        return sHidProfile.setPriority(device, priority);
+        return sHidProfile.setConnectionPolicy(device, priority);
     }
 
     /**
@@ -363,7 +363,7 @@ public class BluetoothHidFacade extends RpcReceiver {
                   String deviceID) throws Exception {
         BluetoothDevice device = BluetoothFacade.getDevice(sHidProfile.getConnectedDevices(),
               deviceID);
-        return sHidProfile.getPriority(device);
+        return sHidProfile.getConnectionPolicy(device);
     }
 
     /**
