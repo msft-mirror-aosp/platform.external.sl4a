@@ -21,6 +21,7 @@ import android.bluetooth.BluetoothA2dp;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothCodecConfig;
 import android.bluetooth.BluetoothCodecStatus;
+import android.bluetooth.BluetoothCodecType;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothUuid;
@@ -62,7 +63,7 @@ public class BluetoothA2dpFacade extends RpcReceiver {
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         mBluetoothA2dpReceiver = new BluetoothA2dpReceiver();
         mBluetoothCodecConfig = new BluetoothCodecConfig(
-                BluetoothCodecConfig.SOURCE_CODEC_TYPE_INVALID,
+                null,
                 BluetoothCodecConfig.CODEC_PRIORITY_DEFAULT,
                 BluetoothCodecConfig.SAMPLE_RATE_NONE,
                 BluetoothCodecConfig.BITS_PER_SAMPLE_NONE,
@@ -258,7 +259,7 @@ public class BluetoothA2dpFacade extends RpcReceiver {
             continue;
         }
         BluetoothCodecConfig codecConfig = new BluetoothCodecConfig(
-                codecType,
+                BluetoothCodecType.createFromType(codecType),
                 BluetoothCodecConfig.CODEC_PRIORITY_HIGHEST,
                 sampleRate,
                 bitsPerSample,
