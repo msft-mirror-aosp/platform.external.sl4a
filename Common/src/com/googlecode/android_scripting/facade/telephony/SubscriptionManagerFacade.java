@@ -21,6 +21,8 @@ import android.content.Context;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
 
+import com.android.internal.telephony.flags.Flags;
+
 import com.googlecode.android_scripting.facade.FacadeManager;
 import com.googlecode.android_scripting.jsonrpc.RpcReceiver;
 import com.googlecode.android_scripting.rpc.Rpc;
@@ -41,7 +43,11 @@ public class SubscriptionManagerFacade extends RpcReceiver {
         super(manager);
         mService = manager.getService();
         mContext = mService.getBaseContext();
-        mSubscriptionManager = SubscriptionManager.from(mContext);
+        SubscriptionManager subscriptionManager = SubscriptionManager.from(mContext);
+        if (Flags.workProfileApiSplit()) {
+            subscriptionManager = subscriptionManager.createForAllUserProfiles();
+        }
+        mSubscriptionManager = subscriptionManager;
     }
 
     @Rpc(description = "Return the default subscription ID")
