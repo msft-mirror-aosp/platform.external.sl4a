@@ -131,18 +131,17 @@ public class BluetoothFacade extends RpcReceiver {
                 Bundle msg = new Bundle();
                 if (state == BluetoothAdapter.STATE_ON) {
                     msg.putString("State", "ON");
-                    mEventFacade.postEvent("BluetoothStateChangedOn", msg);
+                    mEventFacade.postEvent("BluetoothStateChangedOn", msg.clone());
                     if (!mIsMultiBroadcast) {
                         mService.unregisterReceiver(mStateReceiver);
                     }
                 } else if(state == BluetoothAdapter.STATE_OFF) {
                     msg.putString("State", "OFF");
-                    mEventFacade.postEvent("BluetoothStateChangedOff", msg);
+                    mEventFacade.postEvent("BluetoothStateChangedOff", msg.clone());
                     if (!mIsMultiBroadcast) {
                         mService.unregisterReceiver(mStateReceiver);
                     }
                 }
-                msg.clear();
             }
         }
     }
