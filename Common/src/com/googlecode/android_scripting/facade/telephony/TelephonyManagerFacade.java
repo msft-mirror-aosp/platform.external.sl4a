@@ -37,6 +37,7 @@ import android.telephony.ServiceState;
 import android.telephony.SignalStrength;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
+import android.telephony.PinResult;
 
 import com.android.internal.telephony.RILConstants;
 
@@ -1010,6 +1011,21 @@ public class TelephonyManagerFacade extends RpcReceiver {
     }
 
     /**
+     * Check if the Subscription ID is valid.
+     * @param subId the subscription ID
+     * @return    {true} if subId is valid, {false}  otherwise.
+     */
+    @Rpc(description = "Check if the Subscription ID is valid.")
+    public boolean telephonyIsSubscriptionIdValid(
+        @RpcParameter(name = "subId") Integer subId){
+        if (subId == null || !SubscriptionManager.isValidSubscriptionId(subId)) {
+            Log.e("Invalid or null subscription ID");
+            return false;
+        }
+        return true;
+    }
+
+    /**
     * Supply the puk code and pin for locked SIM.
     * @param puk the puk code string
     * @param pin the puk pin string
@@ -1023,6 +1039,25 @@ public class TelephonyManagerFacade extends RpcReceiver {
     }
 
     /**
+     * Supply the puk code and pin for locked SIM of specified subscription ID.
+     * @param subId the subscription ID
+     * @param puk the puk code string
+     * @param pin the puk pin string
+     * @return    true or false for supplying the puk code and pin successfully or unsuccessfully.
+     */
+    @Rpc(description = "Supply Puk and Pin for locked SIM " +
+        "for specified subscription ID.")
+    public boolean telephonySupplyPukForSubscription(
+        @RpcParameter(name = "subId") Integer subId,
+        @RpcParameter(name = "puk") String puk,
+        @RpcParameter(name = "pin") String pin) {
+        if (!telephonyIsSubscriptionIdValid(subId)) {
+            return false;
+        }
+        return mTelephonyManager.createForSubscriptionId(subId).supplyPuk(puk, pin);
+    }
+
+    /**
     * Supply pin for locked SIM.
     * @param pin the puk pin string
     * @return    true or false for supplying the pin successfully or unsuccessfully.
@@ -1031,6 +1066,84 @@ public class TelephonyManagerFacade extends RpcReceiver {
     public boolean telephonySupplyPin(
             @RpcParameter(name = "pin") String pin) {
         return mTelephonyManager.supplyPin(pin);
+    }
+
+    /**
+     * Supply pin for locked SIM of specified subscription ID.
+     * @param subId the subscription ID
+     * @param pin the puk pin string
+     * @return    true or false for supplying the pin successfully or unsuccessfully.
+     */
+    @Rpc(description = "Supply Pin for locked SIM " +
+        "for specified subscription ID.")
+    public boolean telephonySupplyPinForSubscription(
+        @RpcParameter(name = "subId") Integer subId,
+        @RpcParameter(name = "pin") String pin) {
+        if (!telephonyIsSubscriptionIdValid(subId)) {
+            return false;
+        }
+        return mTelephonyManager.createForSubscriptionId(subId).supplyPin(pin);
+    }
+
+    /**
+     * Enable or disable the ICC PIN lock of specified subscription ID.
+     * @param subId the subscription ID
+     * @param enabled "true" for enable, "false" for disable.
+     * @param pin needed to enable or disable the ICC PIN lock
+     * @return    true or false for enable/disable the pin successfully or unsuccessfully.
+     */
+    @Rpc(description = "Enable or disable the ICC PIN lock " +
+        "for specified subscription ID.")
+    public boolean telephonySetIccLockEnabledForSubscription(
+        @RpcParameter(name = "subId") Integer subId,
+        @RpcParameter(name = "enabled") Boolean enabled,
+        @RpcParameter(name = "pin") String pin) {
+        if (!telephonyIsSubscriptionIdValid(subId)) {
+            return false;
+        }
+        PinResult result= mTelephonyManager.createForSubscriptionId(subId).setIccLockEnabled(enabled,pin);
+        if(result != null) {
+            return (result.getResult() == PinResult.PIN_RESULT_TYPE_SUCCESS);
+        }
+        return false;
+    }
+
+    /**
+     * Check whether ICC PIN lock is enabled.
+     * @param subId the subscription ID
+     * @return   true or false for changing the ICC lock PIN successfully or unsuccessfully.
+     */
+    @Rpc(description = "Check whether ICC PIN lock is enabled " +
+        "for specified subscription ID.")
+    public boolean telephonyIsIccLockEnabled(
+        @RpcParameter(name = "subId") Integer subId) {
+        if (!telephonyIsSubscriptionIdValid(subId)) {
+            return false;
+        }
+        return mTelephonyManager.createForSubscriptionId(subId).isIccLockEnabled();
+    }
+
+    /**
+     * Change the ICC lock PIN of specified subscription ID.
+     * @param subId the subscription ID
+     * @param oldPin is the old PIN.
+     * @param newPin is the new PIN.
+     * @return    true or false for changing the ICC lock PIN successfully or unsuccessfully.
+     */
+    @Rpc(description = "Change the ICC lock PIN " +
+        "for specified subscription ID.")
+    public boolean telephonyChangeIccLockPinForSubscription(
+        @RpcParameter(name = "subId") Integer subId,
+        @RpcParameter(name = "oldPin")  String oldPin,
+        @RpcParameter(name = "newPin")  String newPin) {
+        if (!telephonyIsSubscriptionIdValid(subId)) {
+            return false;
+        }
+        PinResult result= mTelephonyManager.createForSubscriptionId(subId).changeIccLockPin(oldPin,newPin);
+        if(result != null) {
+            return (result.getResult() == PinResult.PIN_RESULT_TYPE_SUCCESS);
+        }
+        return false;
     }
 
     @Rpc(description = "Returns the unique subscriber ID (such as IMSI) " +
@@ -1176,7 +1289,7 @@ public class TelephonyManagerFacade extends RpcReceiver {
     public void telephonySetCellInfoListRate(
                 @RpcParameter(name = "rate") Integer rate
             ) {
-        mTelephonyManager.setCellInfoListRate(rate);
+        mTelephonyManager.setCellInfoListRate(rate, SubscriptionManager.getDefaultSubscriptionId());
     }
 
     /**

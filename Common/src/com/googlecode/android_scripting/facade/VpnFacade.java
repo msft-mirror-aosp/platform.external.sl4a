@@ -19,24 +19,16 @@ package com.googlecode.android_scripting.facade;
 import android.app.Service;
 import android.net.VpnManager;
 import android.os.RemoteException;
-import android.security.Credentials;
-import android.security.KeyStore;
-import android.security.LegacyVpnProfileStore;
 
 import com.android.internal.net.LegacyVpnInfo;
 import com.android.internal.net.VpnConfig;
 import com.android.internal.net.VpnProfile;
-import com.android.internal.util.ArrayUtils;
 
-import com.google.android.collect.Lists;
 import com.googlecode.android_scripting.jsonrpc.RpcReceiver;
 import com.googlecode.android_scripting.rpc.Rpc;
 import com.googlecode.android_scripting.rpc.RpcParameter;
 
 import org.json.JSONObject;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Access VPN functions.
@@ -52,19 +44,6 @@ public class VpnFacade extends RpcReceiver {
         mService = manager.getService();
         mCertHelper = new CertInstallerHelper();
         mVpnManager = mService.getSystemService(VpnManager.class);
-    }
-
-    static List<VpnProfile> loadVpnProfiles(KeyStore keyStore, int... excludeTypes) {
-        final ArrayList<VpnProfile> result = Lists.newArrayList();
-
-        for (String key : LegacyVpnProfileStore.list(Credentials.VPN)) {
-            final VpnProfile profile = VpnProfile.decode(key,
-                    LegacyVpnProfileStore.get(Credentials.VPN + key));
-            if (profile != null && !ArrayUtils.contains(excludeTypes, profile.type)) {
-                result.add(profile);
-            }
-        }
-        return result;
     }
 
     private VpnProfile genLegacyVpnProfile(JSONObject vpnProfileJson) {
