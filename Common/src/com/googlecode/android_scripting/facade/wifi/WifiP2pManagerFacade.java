@@ -688,6 +688,9 @@ public class WifiP2pManagerFacade extends RpcReceiver {
             if (j.has("groupOwnerBand")) {
                 b.setGroupOperatingBand(Integer.parseInt(j.getString("groupOwnerBand")));
             }
+            if (j.has("groupOwnerFrequency")) {
+                b.setGroupOperatingFrequency(Integer.parseInt(j.getString("groupOwnerFrequency")));
+            }
             config = b.build();
         }
         if (j.has("deviceAddress")) {
