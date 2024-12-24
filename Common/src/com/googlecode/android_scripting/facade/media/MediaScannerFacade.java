@@ -69,7 +69,7 @@ public class MediaScannerFacade extends RpcReceiver {
         mService.sendBroadcast(new Intent(Intent.ACTION_MEDIA_MOUNTED,
                                Uri.parse("file://" + Environment.getExternalStorageDirectory())));
         mService.registerReceiver(mReceiver,
-                                  new IntentFilter(Intent.ACTION_MEDIA_SCANNER_FINISHED));
+                                  new IntentFilter(Intent.ACTION_MEDIA_SCANNER_FINISHED), Context.RECEIVER_EXPORTED);
     }
 
     @Rpc(description = "Scan for a media file.")

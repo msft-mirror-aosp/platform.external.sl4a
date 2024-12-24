@@ -82,7 +82,7 @@ public class BluetoothMapClientFacade extends RpcReceiver {
                 BluetoothMapClient.ACTION_MESSAGE_SENT_SUCCESSFULLY);
         intentFilter.addAction(
                 BluetoothMapClient.ACTION_MESSAGE_DELIVERED_SUCCESSFULLY);
-        mService.registerReceiver(mNotificationReceiver, intentFilter);
+        mService.registerReceiver(mNotificationReceiver, intentFilter, Context.RECEIVER_EXPORTED);
         Log.d("notification receiver registered");
     }
 
