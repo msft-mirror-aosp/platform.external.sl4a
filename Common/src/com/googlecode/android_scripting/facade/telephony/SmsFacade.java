@@ -185,8 +185,8 @@ public class SmsFacade extends RpcReceiver {
         IntentFilter mmsFilter = new IntentFilter(MMS_MESSAGE_SENT_ACTION);
 
         synchronized (lock) {
-            mService.registerReceiver(mSmsSendListener, smsFilter);
-            mService.registerReceiver(mMmsSendListener, mmsFilter);
+            mService.registerReceiver(mSmsSendListener, smsFilter, Context.RECEIVER_EXPORTED);
+            mService.registerReceiver(mMmsSendListener, mmsFilter, Context.RECEIVER_EXPORTED);
             mSentReceiversRegistered = true;
         }
 
@@ -276,7 +276,7 @@ public class SmsFacade extends RpcReceiver {
     @Rpc(description = "Starts tracking incoming SMS.")
     public void smsStartTrackingIncomingSmsMessage() {
         mService.registerReceiver(mSmsIncomingListener,
-                new IntentFilter(Intents.SMS_RECEIVED_ACTION));
+                new IntentFilter(Intents.SMS_RECEIVED_ACTION), Context.RECEIVER_EXPORTED);
         mListeningIncomingSms = true;
     }
 
@@ -304,7 +304,7 @@ public class SmsFacade extends RpcReceiver {
         IntentFilter mmsReceived = new IntentFilter(Intents.MMS_DOWNLOADED_ACTION);
         mmsReceived.addAction(Intents.WAP_PUSH_RECEIVED_ACTION);
         mmsReceived.addAction(Intents.DATA_SMS_RECEIVED_ACTION);
-        mService.registerReceiver(mMmsIncomingListener, mmsReceived);
+        mService.registerReceiver(mMmsIncomingListener, mmsReceived, Context.RECEIVER_EXPORTED);
         mListeningIncomingMms = true;
     }
 
@@ -450,7 +450,7 @@ public class SmsFacade extends RpcReceiver {
 
             mEmergencyCBMessage = new IntentFilter(EMERGENCY_CB_MESSAGE_RECEIVED_ACTION);
             mService.registerReceiver(mGsmEmergencyCBMessageListener,
-                    mEmergencyCBMessage);
+                    mEmergencyCBMessage, Context.RECEIVER_EXPORTED);
             mGsmEmergencyCBListenerRegistered = true;
         }
     }
@@ -480,7 +480,7 @@ public class SmsFacade extends RpcReceiver {
             }
             mEmergencyCBMessage = new IntentFilter(EMERGENCY_CB_MESSAGE_RECEIVED_ACTION);
             mService.registerReceiver(mCdmaEmergencyCBMessageListener,
-                    mEmergencyCBMessage);
+                    mEmergencyCBMessage, Context.RECEIVER_EXPORTED);
             mCdmaEmergencyCBListenerRegistered = true;
         }
     }

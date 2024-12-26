@@ -566,7 +566,7 @@ public class WifiP2pManagerFacade extends RpcReceiver {
 
     @Rpc(description = "Initialize wifi p2p. Must be called before any other p2p functions.")
     public void wifiP2pInitialize() {
-        mService.registerReceiver(mP2pStateChangedReceiver, mStateChangeFilter);
+        mService.registerReceiver(mP2pStateChangedReceiver, mStateChangeFilter, Context.RECEIVER_EXPORTED);
         mChannel = mP2p.initialize(mService, mService.getMainLooper(), null);
     }
 
