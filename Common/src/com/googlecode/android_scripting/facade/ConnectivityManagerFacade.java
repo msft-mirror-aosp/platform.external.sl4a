@@ -428,7 +428,7 @@ public class ConnectivityManagerFacade extends RpcReceiver {
         if (!mTrackingConnectivityStateChange) {
             mTrackingConnectivityStateChange = true;
             mContext.registerReceiver(mConnectivityReceiver,
-                    new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+                    new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION), Context.RECEIVER_EXPORTED);
         }
     }
 
