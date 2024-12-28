@@ -101,7 +101,7 @@ public class BluetoothDiscoveryHelper {
 
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-        mContext.registerReceiver(mReceiver, filter);
+        mContext.registerReceiver(mReceiver, filter, Context.RECEIVER_EXPORTED);
 
         if (!bluetoothAdapter.isEnabled()) {
             bluetoothAdapter.enable();

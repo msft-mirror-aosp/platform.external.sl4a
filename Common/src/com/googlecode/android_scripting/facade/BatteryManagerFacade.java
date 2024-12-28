@@ -135,7 +135,7 @@ public class BatteryManagerFacade extends RpcReceiver {
       IntentFilter filter = new IntentFilter();
       filter.addAction(Intent.ACTION_BATTERY_CHANGED);
       mReceiver = new BatteryStateListener(mEventFacade);
-      mService.registerReceiver(mReceiver, filter);
+      mService.registerReceiver(mReceiver, filter, Context.RECEIVER_EXPORTED);
     }
   }
 

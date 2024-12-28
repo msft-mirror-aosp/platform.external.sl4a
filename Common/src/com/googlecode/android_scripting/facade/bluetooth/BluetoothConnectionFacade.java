@@ -407,15 +407,15 @@ public class BluetoothConnectionFacade extends RpcReceiver {
                     String deviceID) {
         if (!mDeviceMonitorList.contains(deviceID)) {
             ConnectStateChangeReceiver receiver = new ConnectStateChangeReceiver(deviceID);
-            mService.registerReceiver(receiver, mA2dpStateChangeFilter);
-            mService.registerReceiver(receiver, mA2dpSinkStateChangeFilter);
-            mService.registerReceiver(receiver, mHidStateChangeFilter);
-            mService.registerReceiver(receiver, mHspStateChangeFilter);
-            mService.registerReceiver(receiver, mHfpClientStateChangeFilter);
-            mService.registerReceiver(receiver, mPbapClientStateChangeFilter);
-            mService.registerReceiver(receiver, mPanStateChangeFilter);
-            mService.registerReceiver(receiver, mMapClientStateChangeFilter);
-            mService.registerReceiver(receiver, mMapStateChangeFilter);
+            mService.registerReceiver(receiver, mA2dpStateChangeFilter, Context.RECEIVER_EXPORTED);
+            mService.registerReceiver(receiver, mA2dpSinkStateChangeFilter, Context.RECEIVER_EXPORTED);
+            mService.registerReceiver(receiver, mHidStateChangeFilter, Context.RECEIVER_EXPORTED);
+            mService.registerReceiver(receiver, mHspStateChangeFilter, Context.RECEIVER_EXPORTED);
+            mService.registerReceiver(receiver, mHfpClientStateChangeFilter, Context.RECEIVER_EXPORTED);
+            mService.registerReceiver(receiver, mPbapClientStateChangeFilter, Context.RECEIVER_EXPORTED);
+            mService.registerReceiver(receiver, mPanStateChangeFilter, Context.RECEIVER_EXPORTED);
+            mService.registerReceiver(receiver, mMapClientStateChangeFilter, Context.RECEIVER_EXPORTED);
+            mService.registerReceiver(receiver, mMapStateChangeFilter, Context.RECEIVER_EXPORTED);
             listeningDevices.put("StateChangeListener:" + deviceID, receiver);
         }
     }
@@ -427,7 +427,7 @@ public class BluetoothConnectionFacade extends RpcReceiver {
      * @param deviceID Name (String) of the device to connect to
      */
     private void connectProfile(BluetoothDevice device, String deviceID) {
-        mService.registerReceiver(mPairingHelper, mPairingFilter);
+        mService.registerReceiver(mPairingHelper, mPairingFilter, Context.RECEIVER_EXPORTED);
         ParcelUuid[] deviceUuids = device.getUuids();
         Log.d("Device uuid is " + Arrays.toString(deviceUuids));
         if (deviceUuids == null) {
@@ -536,7 +536,7 @@ public class BluetoothConnectionFacade extends RpcReceiver {
         Boolean autoConfirm) {
         Log.d("Staring pairing helper");
         mPairingHelper.setAutoConfirm(autoConfirm);
-        mService.registerReceiver(mPairingHelper, mPairingFilter);
+        mService.registerReceiver(mPairingHelper, mPairingFilter, Context.RECEIVER_EXPORTED);
     }
 
     @Rpc(description = "Return a list of devices connected through bluetooth")
@@ -577,14 +577,14 @@ public class BluetoothConnectionFacade extends RpcReceiver {
     @Rpc(description = "Bluetooth init Bond by Mac Address")
     public boolean bluetoothBond(@RpcParameter(name = "macAddress") String macAddress) {
         mContext.registerReceiver(new BondBroadcastReceiver(),
-                new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
+                new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED), Context.RECEIVER_EXPORTED);
         return mBluetoothAdapter.getRemoteDevice(macAddress).createBond();
     }
 
     @Rpc(description = "Bluetooth init LE Bond by Mac Address")
     public boolean bluetoothLeBond(@RpcParameter(name = "macAddress") String macAddress) {
         mContext.registerReceiver(new BondBroadcastReceiver(),
-                new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
+                new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED), Context.RECEIVER_EXPORTED);
         return mBluetoothAdapter.getRemoteDevice(macAddress).createBond(BluetoothDevice.TRANSPORT_LE);
     }
 
@@ -676,7 +676,7 @@ public class BluetoothConnectionFacade extends RpcReceiver {
                 .setRandomizerHash(hexStringToByteArray(r))
                 .build();
         mContext.registerReceiver(new BondBroadcastReceiver(),
-                new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
+                new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED), Context.RECEIVER_EXPORTED);
         return remoteDevice.createBondOutOfBand(BluetoothDevice.TRANSPORT_LE, p192, p256);
     }
 
@@ -737,7 +737,7 @@ public class BluetoothConnectionFacade extends RpcReceiver {
         }
         DiscoverConnectReceiver receiver = new DiscoverConnectReceiver(deviceID);
         listeningDevices.put("Connect" + deviceID, receiver);
-        mService.registerReceiver(receiver, mDiscoverConnectFilter);
+        mService.registerReceiver(receiver, mDiscoverConnectFilter, Context.RECEIVER_EXPORTED);
         return mBluetoothAdapter.startDiscovery();
     }
 
@@ -762,7 +762,7 @@ public class BluetoothConnectionFacade extends RpcReceiver {
             mService.unregisterReceiver(listeningDevices.remove("Bond" + deviceID));
         }
         listeningDevices.put("Bond" + deviceID, receiver);
-        mService.registerReceiver(receiver, mBondFilter);
+        mService.registerReceiver(receiver, mBondFilter, Context.RECEIVER_EXPORTED);
         Log.d("Start discovery for bonding.");
         return mBluetoothAdapter.startDiscovery();
     }
@@ -778,7 +778,7 @@ public class BluetoothConnectionFacade extends RpcReceiver {
             BluetoothDevice mDevice = BluetoothFacade.getDevice(
                     mBluetoothAdapter.getBondedDevices(), deviceID);
             mContext.registerReceiver(new BondBroadcastReceiver(),
-                    new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
+                    new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED), Context.RECEIVER_EXPORTED);
             return mDevice.removeBond();
         } catch (Exception e) {
             Log.d("Failed to find the device by deviceId");

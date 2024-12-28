@@ -74,7 +74,7 @@ public class WifiRtt2ManagerFacade extends RpcReceiver {
 
         mStateChangedReceiver = new StateChangedReceiver();
         IntentFilter filter = new IntentFilter(WifiRttManager.ACTION_WIFI_RTT_STATE_CHANGED);
-        mService.registerReceiver(mStateChangedReceiver, filter);
+        mService.registerReceiver(mStateChangedReceiver, filter, Context.RECEIVER_EXPORTED);
     }
 
     @Override
