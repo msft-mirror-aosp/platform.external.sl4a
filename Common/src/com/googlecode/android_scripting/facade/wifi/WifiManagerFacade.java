@@ -1887,7 +1887,7 @@ public class WifiManagerFacade extends RpcReceiver {
 
     @Rpc(description = "Starts a scan for Wifi access points.", returns = "True if the scan was initiated successfully.")
     public Boolean wifiStartScan() {
-        mService.registerReceiver(mScanResultsAvailableReceiver, mScanFilter);
+        mService.registerReceiver(mScanResultsAvailableReceiver, mScanFilter, Context.RECEIVER_EXPORTED);
         return mWifi.startScan();
     }
 
@@ -1910,7 +1910,7 @@ public class WifiManagerFacade extends RpcReceiver {
 
     @Rpc(description = "Start listening for wifi state change related broadcasts.")
     public void wifiStartTrackingStateChange() {
-        mService.registerReceiver(mStateChangeReceiver, mStateChangeFilter);
+        mService.registerReceiver(mStateChangeReceiver, mStateChangeFilter, Context.RECEIVER_EXPORTED);
         mTrackingWifiStateChange = true;
     }
 
@@ -1924,7 +1924,7 @@ public class WifiManagerFacade extends RpcReceiver {
 
     @Rpc(description = "Start listening for tether state change related broadcasts.")
     public void wifiStartTrackingTetherStateChange() {
-        mService.registerReceiver(mTetherStateReceiver, mTetherFilter);
+        mService.registerReceiver(mTetherStateReceiver, mTetherFilter, Context.RECEIVER_EXPORTED);
         mTrackingTetherStateChange = true;
     }
 
@@ -1939,7 +1939,7 @@ public class WifiManagerFacade extends RpcReceiver {
     @Rpc(description = "Start listening for network suggestion change related broadcasts.")
     public void wifiStartTrackingNetworkSuggestionStateChange() {
         mService.registerReceiver(
-                mNetworkSuggestionStateChangeReceiver, mNetworkSuggestionStateChangeFilter);
+                mNetworkSuggestionStateChangeReceiver, mNetworkSuggestionStateChangeFilter, Context.RECEIVER_EXPORTED);
         mTrackingNetworkSuggestionStateChange = true;
     }
 
