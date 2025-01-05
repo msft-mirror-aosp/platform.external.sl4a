@@ -222,7 +222,7 @@ public class InterpreterConfiguration {
     filter.addAction(Intent.ACTION_PACKAGE_REPLACED);
     filter.addDataScheme("package");
     mListener = new InterpreterListener(mContext);
-    mContext.registerReceiver(mListener, filter);
+    mContext.registerReceiver(mListener, filter, Context.RECEIVER_EXPORTED);
   }
 
   public void startDiscovering() {

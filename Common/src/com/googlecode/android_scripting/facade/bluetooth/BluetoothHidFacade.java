@@ -74,7 +74,7 @@ public class BluetoothHidFacade extends RpcReceiver {
         pkgFilter.addAction(BluetoothHidHost.ACTION_REPORT);
         pkgFilter.addAction(BluetoothHidHost.ACTION_VIRTUAL_UNPLUG_STATUS);
         pkgFilter.addAction(BluetoothHidHost.ACTION_IDLE_TIME_CHANGED);
-        mService.registerReceiver(mHidServiceBroadcastReceiver, pkgFilter);
+        mService.registerReceiver(mHidServiceBroadcastReceiver, pkgFilter, Context.RECEIVER_EXPORTED);
         Log.d(HidServiceBroadcastReceiver.TAG + " registered");
         mEventFacade = manager.getReceiver(EventFacade.class);
     }
