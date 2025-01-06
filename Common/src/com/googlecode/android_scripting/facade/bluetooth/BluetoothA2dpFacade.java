@@ -72,7 +72,7 @@ public class BluetoothA2dpFacade extends RpcReceiver {
                 BluetoothProfile.A2DP);
 
         mService.registerReceiver(mBluetoothA2dpReceiver,
-                          new IntentFilter(BluetoothA2dp.ACTION_CODEC_CONFIG_CHANGED));
+                          new IntentFilter(BluetoothA2dp.ACTION_CODEC_CONFIG_CHANGED), Context.RECEIVER_EXPORTED);
     }
 
     class A2dpServiceListener implements BluetoothProfile.ServiceListener {

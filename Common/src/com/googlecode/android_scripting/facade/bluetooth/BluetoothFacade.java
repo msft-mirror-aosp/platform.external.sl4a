@@ -351,7 +351,7 @@ public class BluetoothFacade extends RpcReceiver {
             @RpcDefault("false")
             Boolean prompt) {
         mService.registerReceiver(mStateReceiver,
-                                  new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
+                                  new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED), Context.RECEIVER_EXPORTED);
         if (enabled == null) {
             enabled = !bluetoothCheckState();
         }
@@ -368,7 +368,7 @@ public class BluetoothFacade extends RpcReceiver {
          returns = "true on success, false on error")
     public Boolean bluetoothStartDiscovery() {
         DiscoveredDevices.clear();
-        mService.registerReceiver(mDiscoveryReceiver, discoveryFilter);
+        mService.registerReceiver(mDiscoveryReceiver, discoveryFilter, Context.RECEIVER_EXPORTED);
         return mBluetoothAdapter.startDiscovery();
     }
 
@@ -502,21 +502,21 @@ public class BluetoothFacade extends RpcReceiver {
     @Rpc(description = "Enables BLE functionalities.")
     public boolean bluetoothEnableBLE() {
         mService.registerReceiver(mBleStateReceiver,
-            new IntentFilter(BluetoothAdapter.ACTION_BLE_STATE_CHANGED));
+            new IntentFilter(BluetoothAdapter.ACTION_BLE_STATE_CHANGED), Context.RECEIVER_EXPORTED);
         return mBluetoothAdapter.enableBLE();
     }
 
     @Rpc(description = "Disables BLE functionalities.")
     public boolean bluetoothDisableBLE() {
         mService.registerReceiver(mBleStateReceiver,
-            new IntentFilter(BluetoothAdapter.ACTION_BLE_STATE_CHANGED));
+            new IntentFilter(BluetoothAdapter.ACTION_BLE_STATE_CHANGED), Context.RECEIVER_EXPORTED);
         return mBluetoothAdapter.disableBLE();
     }
 
     @Rpc(description = "Listen for a Bluetooth LE State Change.")
     public boolean bluetoothListenForBleStateChange() {
         mService.registerReceiver(mBleStateReceiver,
-            new IntentFilter(BluetoothAdapter.ACTION_BLE_STATE_CHANGED));
+            new IntentFilter(BluetoothAdapter.ACTION_BLE_STATE_CHANGED), Context.RECEIVER_EXPORTED);
         return true;
     }
 
@@ -535,7 +535,7 @@ public class BluetoothFacade extends RpcReceiver {
             }
             mMultiStateReceiver = new BluetoothStateReceiver(true);
             mService.registerReceiver(mMultiStateReceiver,
-                    new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
+                    new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED), Context.RECEIVER_EXPORTED);
         }
         return true;
     }

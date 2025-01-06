@@ -104,7 +104,7 @@ public class EventFacade extends RpcReceiver {
 
         BroadcastListener b = new BroadcastListener(this, enqueue.booleanValue());
         IntentFilter c = new IntentFilter(category);
-        mContext.registerReceiver(b, c);
+        mContext.registerReceiver(b, c, Context.RECEIVER_EXPORTED);
         mBroadcastListeners.put(category, b);
 
         return true;

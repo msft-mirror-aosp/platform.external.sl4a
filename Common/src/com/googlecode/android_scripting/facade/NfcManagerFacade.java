@@ -81,7 +81,7 @@ public class NfcManagerFacade extends RpcReceiver {
 
     @Rpc(description = "Start tracking NFC hardware state changes.")
     public void nfcStartTrackingStateChange() {
-        mService.registerReceiver(mNfcStateReceiver, mStateChangeFilter);
+        mService.registerReceiver(mNfcStateReceiver, mStateChangeFilter, Context.RECEIVER_EXPORTED);
         mTrackingStateChange = true;
     }
 

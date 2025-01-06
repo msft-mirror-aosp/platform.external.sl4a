@@ -355,7 +355,7 @@ public class WifiAwareManagerFacade extends RpcReceiver {
 
         mStateChangedReceiver = new WifiAwareStateChangedReceiver();
         IntentFilter filter = new IntentFilter(WifiAwareManager.ACTION_WIFI_AWARE_STATE_CHANGED);
-        mService.registerReceiver(mStateChangedReceiver, filter);
+        mService.registerReceiver(mStateChangedReceiver, filter, Context.RECEIVER_EXPORTED);
     }
 
     @Override

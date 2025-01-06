@@ -47,7 +47,7 @@ public class BluetoothBroadcastHelper {
         for (String action : mActions) {
             mIntentFilter.addAction(action);
         }
-        mContext.registerReceiver(mReceiver, mIntentFilter);
+        mContext.registerReceiver(mReceiver, mIntentFilter, Context.RECEIVER_EXPORTED);
     }
 
     /**
