@@ -282,7 +282,7 @@ public class BluetoothLeScanFacade extends RpcReceiver {
         }
         Log.d("Registering receiver");
         mService.registerReceiver(new TestBroadcastReceiver(),
-                new IntentFilter(ScanBroadcastReceiver.ACTION_FOUND_SIDESTEP));
+                new IntentFilter(ScanBroadcastReceiver.ACTION_FOUND_SIDESTEP), Context.RECEIVER_EXPORTED);
         Log.d("Starting Scan");
         mScanner.startScan(mScanFilters, mScanSettings, createPendingIntent());
     }
