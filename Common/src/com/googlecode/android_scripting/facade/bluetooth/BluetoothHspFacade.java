@@ -344,30 +344,6 @@ public class BluetoothHspFacade extends RpcReceiver {
         return sHspProfile.isInbandRingingEnabled();
     }
 
-    /**
-     * Send a CLCC response from Sl4a (experimental).
-     *
-     * @param index the index of the call
-     * @param direction the direction of the call
-     * @param status the status of the call
-     * @param mode the mode
-     * @param mpty the mpty value
-     * @param number the phone number
-     * @param type the type
-     */
-    @Rpc(description = "Send generic clcc response.")
-    public void bluetoothHspClccResponse(
-            @RpcParameter(name = "index", description = "") Integer index,
-            @RpcParameter(name = "direction", description = "") Integer direction,
-            @RpcParameter(name = "status", description = "") Integer status,
-            @RpcParameter(name = "mode", description = "") Integer mode,
-            @RpcParameter(name = "mpty", description = "") Boolean mpty,
-            @RpcParameter(name = "number", description = "") String number,
-            @RpcParameter(name = "type", description = "") Integer type
-                  ) {
-        sHspProfile.clccResponse(index, direction, status, mode, mpty, number, type);
-    }
-
     @Override
     public void shutdown() {
     }
