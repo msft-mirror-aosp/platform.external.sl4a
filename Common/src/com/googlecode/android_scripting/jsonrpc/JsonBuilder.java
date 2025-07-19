@@ -72,23 +72,23 @@ import android.telephony.CellIdentity;
 import android.telephony.CellIdentityCdma;
 import android.telephony.CellIdentityGsm;
 import android.telephony.CellIdentityLte;
+import android.telephony.CellIdentityNr;
 import android.telephony.CellIdentityTdscdma;
 import android.telephony.CellIdentityWcdma;
-import android.telephony.CellIdentityNr;
 import android.telephony.CellInfo;
 import android.telephony.CellInfoCdma;
 import android.telephony.CellInfoGsm;
 import android.telephony.CellInfoLte;
+import android.telephony.CellInfoNr;
 import android.telephony.CellInfoTdscdma;
 import android.telephony.CellInfoWcdma;
-import android.telephony.CellInfoNr;
 import android.telephony.CellLocation;
 import android.telephony.CellSignalStrengthCdma;
 import android.telephony.CellSignalStrengthGsm;
 import android.telephony.CellSignalStrengthLte;
+import android.telephony.CellSignalStrengthNr;
 import android.telephony.CellSignalStrengthTdscdma;
 import android.telephony.CellSignalStrengthWcdma;
-import android.telephony.CellSignalStrengthNr;
 import android.telephony.ModemActivityInfo;
 import android.telephony.NeighboringCellInfo;
 import android.telephony.ServiceState;
@@ -1679,9 +1679,9 @@ public class JsonBuilder {
                 ss.getRilDataRadioTechnology());
         info.put(TelephonyConstants.ServiceStateContainer.CSS_INDICATOR, ss.getCssIndicator());
         info.put(TelephonyConstants.ServiceStateContainer.CDMA_ROAMING_INDICATOR,
-                ss.getCdmaRoamingIndicator());
+                -1);
         info.put(TelephonyConstants.ServiceStateContainer.CDMA_DEFAULT_ROAMING_INDICATOR,
-                ss.getCdmaDefaultRoamingIndicator());
+                -1);
         info.put(TelephonyConstants.ServiceStateContainer.IS_DATA_ROAMING_FROM_REGISTRATION,
                 ss.getDataRoamingFromRegistration());
         info.put(TelephonyConstants.ServiceStateContainer.IS_USING_CARRIER_AGGREGATION,
