@@ -61,13 +61,7 @@ public class BluetoothA2dpFacade extends RpcReceiver {
 
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         mBluetoothA2dpReceiver = new BluetoothA2dpReceiver();
-        mBluetoothCodecConfig = new BluetoothCodecConfig(
-                BluetoothCodecConfig.SOURCE_CODEC_TYPE_INVALID,
-                BluetoothCodecConfig.CODEC_PRIORITY_DEFAULT,
-                BluetoothCodecConfig.SAMPLE_RATE_NONE,
-                BluetoothCodecConfig.BITS_PER_SAMPLE_NONE,
-                BluetoothCodecConfig.CHANNEL_MODE_NONE,
-                0L, 0L, 0L, 0L);
+        mBluetoothCodecConfig = new BluetoothCodecConfig.Builder().build();
         mBluetoothAdapter.getProfileProxy(mService, new A2dpServiceListener(),
                 BluetoothProfile.A2DP);
 
@@ -115,10 +109,10 @@ public class BluetoothA2dpFacade extends RpcReceiver {
         List<BluetoothDevice> sinks = sA2dpProfile.getConnectedDevices();
         if (sinks != null) {
             for (BluetoothDevice sink : sinks) {
-                sA2dpProfile.disconnect(sink);
+                a2dpDisconnect(sink);
             }
         }
-        return sA2dpProfile.connect(device);
+        return sA2dpProfile.setConnectionPolicy(device, BluetoothProfile.CONNECTION_POLICY_ALLOWED);
     }
 
     /**
@@ -129,10 +123,8 @@ public class BluetoothA2dpFacade extends RpcReceiver {
     */
     public Boolean a2dpDisconnect(BluetoothDevice device) {
         if (sA2dpProfile == null) return false;
-        if (sA2dpProfile.getConnectionPolicy(device) > BluetoothProfile.CONNECTION_POLICY_ALLOWED) {
-            sA2dpProfile.setConnectionPolicy(device, BluetoothProfile.CONNECTION_POLICY_ALLOWED);
-        }
-        return sA2dpProfile.disconnect(device);
+        return sA2dpProfile.setConnectionPolicy(
+                device, BluetoothProfile.CONNECTION_POLICY_FORBIDDEN);
     }
 
     /**
@@ -257,19 +249,20 @@ public class BluetoothA2dpFacade extends RpcReceiver {
         while (!sIsA2dpReady) {
             continue;
         }
-        BluetoothCodecConfig codecConfig = new BluetoothCodecConfig(
-                codecType,
-                BluetoothCodecConfig.CODEC_PRIORITY_HIGHEST,
-                sampleRate,
-                bitsPerSample,
-                channelMode,
-                codecSpecific1,
-                0L, 0L, 0L);
-        BluetoothDevice activeDevice = sA2dpProfile.getActiveDevice();
-        if (activeDevice == null) {
+        BluetoothCodecConfig codecConfig = new BluetoothCodecConfig.Builder()
+                .setCodecType(codecType)
+                .setCodecPriority(BluetoothCodecConfig.CODEC_PRIORITY_HIGHEST)
+                .setSampleRate(sampleRate)
+                .setBitsPerSample(bitsPerSample)
+                .setChannelMode(channelMode)
+                .setCodecSpecific1(codecSpecific1)
+                .build();
+        var devices = mBluetoothAdapter.getActiveDevices(BluetoothProfile.A2DP);
+        if (devices.isEmpty()) {
             Log.e("No active device");
             throw new Exception("No active device");
         }
+        BluetoothDevice activeDevice = devices.get(0);
         BluetoothCodecStatus currentCodecStatus = sA2dpProfile.getCodecStatus(activeDevice);
         BluetoothCodecConfig currentCodecConfig = currentCodecStatus.getCodecConfig();
         if (isSelectableCodec(codecConfig, currentCodecConfig)
@@ -298,11 +291,12 @@ public class BluetoothA2dpFacade extends RpcReceiver {
         while (!sIsA2dpReady) {
             continue;
         }
-        if (sA2dpProfile.getActiveDevice() == null) {
+        var devices = mBluetoothAdapter.getActiveDevices(BluetoothProfile.A2DP);
+        if (devices.isEmpty()) {
             Log.e("No active device.");
             throw new Exception("No active device");
         }
-        return sA2dpProfile.getCodecStatus(sA2dpProfile.getActiveDevice()).getCodecConfig();
+        return sA2dpProfile.getCodecStatus(devices.get(0)).getCodecConfig();
     }
 
     @Override

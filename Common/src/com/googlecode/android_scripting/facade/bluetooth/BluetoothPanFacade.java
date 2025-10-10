@@ -73,12 +73,13 @@ public class BluetoothPanFacade extends RpcReceiver {
 
     public Boolean panConnect(BluetoothDevice device) {
         if (sPanProfile == null) return false;
-        return sPanProfile.connect(device);
+        return sPanProfile.setConnectionPolicy(device, BluetoothProfile.CONNECTION_POLICY_ALLOWED);
     }
 
     public Boolean panDisconnect(BluetoothDevice device) {
         if (sPanProfile == null) return false;
-        return sPanProfile.disconnect(device);
+        return sPanProfile.setConnectionPolicy(
+                device, BluetoothProfile.CONNECTION_POLICY_FORBIDDEN);
     }
 
     @Rpc(description = "Is Pan profile ready.")

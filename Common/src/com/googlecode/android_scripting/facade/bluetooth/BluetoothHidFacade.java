@@ -35,10 +35,8 @@ import com.googlecode.android_scripting.facade.EventFacade;
 import com.googlecode.android_scripting.facade.FacadeManager;
 import com.googlecode.android_scripting.jsonrpc.RpcReceiver;
 import com.googlecode.android_scripting.rpc.Rpc;
-import com.googlecode.android_scripting.rpc.RpcDefault;
 import com.googlecode.android_scripting.rpc.RpcParameter;
 
-import java.util.Arrays;
 import java.util.List;
 
 /*
@@ -69,11 +67,6 @@ public class BluetoothHidFacade extends RpcReceiver {
         BluetoothProfile.HID_HOST);
         IntentFilter pkgFilter = new IntentFilter();
         pkgFilter.addAction(BluetoothHidHost.ACTION_CONNECTION_STATE_CHANGED);
-        pkgFilter.addAction(BluetoothHidHost.ACTION_PROTOCOL_MODE_CHANGED);
-        pkgFilter.addAction(BluetoothHidHost.ACTION_HANDSHAKE);
-        pkgFilter.addAction(BluetoothHidHost.ACTION_REPORT);
-        pkgFilter.addAction(BluetoothHidHost.ACTION_VIRTUAL_UNPLUG_STATUS);
-        pkgFilter.addAction(BluetoothHidHost.ACTION_IDLE_TIME_CHANGED);
         mService.registerReceiver(mHidServiceBroadcastReceiver, pkgFilter, Context.RECEIVER_EXPORTED);
         Log.d(HidServiceBroadcastReceiver.TAG + " registered");
         mEventFacade = manager.getReceiver(EventFacade.class);
@@ -110,36 +103,6 @@ public class BluetoothHidFacade extends RpcReceiver {
                             + previousState + " -> " + state);
                 }
                 break;
-                case BluetoothHidHost.ACTION_PROTOCOL_MODE_CHANGED: {
-                    int status = intent.getIntExtra(
-                            BluetoothHidHost.EXTRA_STATUS, -1);
-                    Log.d("Protocol mode changed: " + status);
-                }
-                break;
-                case BluetoothHidHost.ACTION_HANDSHAKE: {
-                    int status = intent.getIntExtra(
-                            BluetoothHidHost.EXTRA_STATUS, -1);
-                    Log.d("Handshake received: " + status);
-                }
-                break;
-                case BluetoothHidHost.ACTION_REPORT: {
-                    byte[] report = intent.getByteArrayExtra(
-                            BluetoothHidHost.EXTRA_REPORT);
-                    Log.d("Received report: " + Arrays.toString(report));
-                }
-                break;
-                case BluetoothHidHost.ACTION_VIRTUAL_UNPLUG_STATUS: {
-                    int status = intent.getIntExtra(
-                            BluetoothHidHost.EXTRA_VIRTUAL_UNPLUG_STATUS, -1);
-                    Log.d("Virtual unplug status: " + status);
-                }
-                break;
-                case BluetoothHidHost.ACTION_IDLE_TIME_CHANGED: {
-                    int idleTime = intent.getIntExtra(
-                            BluetoothHidHost.EXTRA_IDLE_TIME, -1);
-                    Log.d("Idle time changed: " + idleTime);
-                }
-                break;
                 default:
                     break;
             }
@@ -156,7 +119,7 @@ public class BluetoothHidFacade extends RpcReceiver {
      */
     public Boolean hidConnect(BluetoothDevice device) {
         if (sHidProfile == null) return false;
-        return sHidProfile.connect(device);
+        return sHidProfile.setConnectionPolicy(device, BluetoothProfile.CONNECTION_POLICY_ALLOWED);
     }
 
     /**
@@ -166,7 +129,8 @@ public class BluetoothHidFacade extends RpcReceiver {
      */
     public Boolean hidDisconnect(BluetoothDevice device) {
         if (sHidProfile == null) return false;
-        return sHidProfile.disconnect(device);
+        return sHidProfile.setConnectionPolicy(
+                device, BluetoothProfile.CONNECTION_POLICY_FORBIDDEN);
     }
 
     /**
@@ -176,42 +140,6 @@ public class BluetoothHidFacade extends RpcReceiver {
     @Rpc(description = "Is Hid profile ready.")
     public Boolean bluetoothHidIsReady() {
         return sIsHidReady;
-    }
-
-    /**
-     * Connect to an HID device.
-     * @param device - Name or MAC address of a bluetooth device.
-     * @return if the connection was successfull or not.
-     */
-    @Rpc(description = "Connect to an HID device.")
-    public Boolean bluetoothHidConnect(
-            @RpcParameter(name = "device",
-                description = "Name or MAC address of a bluetooth device.")
-                    String device)
-                        throws Exception {
-        if (sHidProfile == null) return false;
-        BluetoothDevice mDevice = BluetoothFacade.getDevice(
-                BluetoothFacade.DiscoveredDevices, device);
-        Log.d("Connecting to device " + mDevice.getAlias());
-        return hidConnect(mDevice);
-    }
-
-    /**
-     * Disconnect an HID device.
-     * @param device - the Bluetooth Device object to disconnect to.
-     * @return if the disconnection was successfull or not.
-     */
-    @Rpc(description = "Disconnect an HID device.")
-    public Boolean bluetoothHidDisconnect(
-            @RpcParameter(name = "device",
-                description = "Name or MAC address of a device.")
-                    String device)
-                        throws Exception {
-        if (sHidProfile == null) return false;
-        Log.d("Connected devices: " + sHidProfile.getConnectedDevices());
-        BluetoothDevice mDevice = BluetoothFacade.getDevice(
-                sHidProfile.getConnectedDevices(), device);
-        return hidDisconnect(mDevice);
     }
 
     /**
@@ -248,90 +176,6 @@ public class BluetoothHidFacade extends RpcReceiver {
     }
 
     /**
-     * Send Set_Report command to the connected HID input device.
-     * @param deviceID - Name or MAC address of a bluetooth device.
-     * @return True if successfully sent the command; otherwise false
-     */
-    @Rpc(description =
-            "Send Set_Report command to the connected HID input device.")
-    public Boolean bluetoothHidSetReport(
-            @RpcParameter(name = "deviceID",
-                description = "Name or MAC address of a bluetooth device.")
-                    String deviceID,
-            @RpcParameter(name = "type")
-            @RpcDefault(value = "1") Integer type,
-            @RpcParameter(name = "report")
-                String report) throws Exception {
-        BluetoothDevice device = BluetoothFacade.getDevice(
-                sHidProfile.getConnectedDevices(), deviceID);
-        Log.d("type=" + type);
-        return sHidProfile.setReport(device, (byte) (int) type, report);
-    }
-
-    /**
-     * Sends the Get_Report command to the given connected HID input device.
-     * @param deviceID name or MAC address or the HID input device
-     * @param type Bluetooth HID report type
-     * @param reportId ID for the requesting report
-     * @param buffSize advised buffer size on the Bluetooth HID host
-     * @return True if successfully sent the command; otherwise false
-     * @throws Exception error from Bluetooth HidService
-     */
-    @Rpc(description = "Send Get_Report command to the connected HID input device.")
-    public Boolean bluetoothHidGetReport(
-            @RpcParameter(name = "deviceID",
-                description = "Name or MAC address of a bluetooth device.")
-                    String deviceID,
-            @RpcParameter(name = "type")
-            @RpcDefault(value = "1") Integer type,
-            @RpcParameter(name = "reportId")
-            Integer reportId,
-            @RpcParameter(name = "buffSize")
-            Integer buffSize) throws Exception {
-        BluetoothDevice device = BluetoothFacade.getDevice(
-                sHidProfile.getConnectedDevices(), deviceID);
-        Log.d("type=" + type + " reportId=" + reportId);
-        return sHidProfile.getReport(
-                device, (byte) (int) type, (byte) (int) reportId, buffSize);
-    }
-
-    /**
-     * Sends a data report to the given connected HID input device.
-     * @param deviceID name or MAC address or the HID input device
-     * @param report the report payload
-     * @return True if successfully sent the command; otherwise false
-     * @throws Exception error from Bluetooth HidService
-     */
-    @Rpc(description = "Send data to a connected HID device.")
-    public Boolean bluetoothHidSendData(
-            @RpcParameter(name = "deviceID",
-                description = "Name or MAC address of a bluetooth device.")
-                String deviceID,
-            @RpcParameter(name = "report")
-                String report) throws Exception {
-        BluetoothDevice device = BluetoothFacade.getDevice(
-                sHidProfile.getConnectedDevices(), deviceID);
-        return sHidProfile.sendData(device, report);
-    }
-
-
-    /**
-     * Sends the virtual cable unplug command to the given connected HID input device.
-     * @param deviceID name or MAC address or the HID input device
-     * @return True if successfully sent the command; otherwise false
-     * @throws Exception error from Bluetooth HidService
-     */
-    @Rpc(description = "Send virtual unplug to a connected HID device.")
-        public Boolean bluetoothHidVirtualUnplug(
-                @RpcParameter(name = "deviceID",
-          description = "Name or MAC address of a bluetooth device.")
-          String deviceID) throws Exception {
-        BluetoothDevice device = BluetoothFacade.getDevice(sHidProfile.getConnectedDevices(),
-              deviceID);
-        return sHidProfile.virtualUnplug(device);
-    }
-
-    /**
      * Sends the Set_Priority command to the given connected HID input device.
      * @param deviceID name or MAC address or the HID input device
      * @param priority priority level
@@ -364,78 +208,6 @@ public class BluetoothHidFacade extends RpcReceiver {
         BluetoothDevice device = BluetoothFacade.getDevice(sHidProfile.getConnectedDevices(),
               deviceID);
         return sHidProfile.getConnectionPolicy(device);
-    }
-
-    /**
-     * Sends the Set_Protocol_Mode command to the given connected HID input device.
-     * @param deviceID name or MAC address or the HID input device
-     * @param protocolMode protocol mode
-     * @return True if successfully sent the command; otherwise false
-     * @throws Exception error from Bluetooth HidService
-     */
-    @Rpc(description = "Send Set_Protocol_Mode command to the connected HID input device.")
-    public Boolean bluetoothHidSetProtocolMode(
-          @RpcParameter(name = "deviceID",
-                  description = "Name or MAC address of a bluetooth device.")
-                  String deviceID,
-          @RpcParameter(name = "protocolMode")
-                  Integer protocolMode) throws Exception {
-        BluetoothDevice device = BluetoothFacade.getDevice(sHidProfile.getConnectedDevices(),
-              deviceID);
-        return sHidProfile.setProtocolMode(device, protocolMode);
-    }
-
-    /**
-     * Sends the Get_Protocol_Mode command to the given connected HID input device.
-     * @param deviceID name or MAC address or the HID input device
-     * @return True if successfully sent the command; otherwise false
-     * @throws Exception error from Bluetooth HidService
-     */
-    @Rpc(description =
-            "Send Get_Protocol_Mode command to the connected HID input device.")
-    public Boolean bluetoothHidGetProtocolMode(
-          @RpcParameter(name = "deviceID",
-                  description = "Name or MAC address of a bluetooth device.")
-                  String deviceID) throws Exception {
-        BluetoothDevice device = BluetoothFacade.getDevice(
-                sHidProfile.getConnectedDevices(), deviceID);
-        return sHidProfile.getProtocolMode(device);
-    }
-
-    /**
-     * Sends the Set_Idle_Time command to the given connected HID input device.
-     * @param deviceID name or MAC address or the HID input device
-     * @param idleTime idle time
-     * @return True if successfully sent the command; otherwise false
-     * @throws Exception error from Bluetooth HidService
-     */
-    @Rpc(description = "Send Set_Idle_Time command to the connected HID input device.")
-    public Boolean bluetoothHidSetIdleTime(
-            @RpcParameter(name = "deviceID",
-                description = "Name or MAC address of a bluetooth device.")
-                    String deviceID,
-            @RpcParameter(name = "idleTime")
-                Integer idleTime) throws Exception {
-        BluetoothDevice device = BluetoothFacade.getDevice(
-                sHidProfile.getConnectedDevices(), deviceID);
-        return sHidProfile.setIdleTime(
-                device, (byte) (int) idleTime);
-    }
-
-    /**
-     * Sends the Get_Idle_Time command to the given connected HID input device.
-     * @param deviceID name or MAC address or the HID input device
-     * @return True if successfully sent the command; otherwise false
-     * @throws Exception error from Bluetooth HidService
-     */
-    @Rpc(description = "Send Get_Idle_Time command to the connected HID input device.")
-    public Boolean bluetoothHidGetIdleTime(
-            @RpcParameter(name = "deviceID",
-                  description = "Name or MAC address of a bluetooth device.")
-                  String deviceID) throws Exception {
-        BluetoothDevice device = BluetoothFacade.getDevice(
-                sHidProfile.getConnectedDevices(), deviceID);
-        return sHidProfile.getIdleTime(device);
     }
 
     /**

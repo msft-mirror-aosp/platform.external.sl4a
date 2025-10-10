@@ -320,31 +320,6 @@ public class BluetoothSocketConnFacade extends RpcReceiver {
     }
 
     /**
-     * Set the current BluetoothSocket LE Data Length value to the maximum supported by this BT
-     * controller. This command suggests to the BT controller to set its maximum transmission packet
-     * size.
-     * @throws Exception
-     */
-    @Rpc(description = "Request Maximum Tx Data Length")
-    public void bluetoothSocketRequestMaximumTxDataLength()
-            throws IOException  {
-        Log.d("bluetoothSocketRequestMaximumTxDataLength");
-
-        if (mConnectThread == null) {
-            String connUuid = mConnectThread.getConnUuid();
-            throw new IOException("bluetoothSocketRequestMaximumTxDataLength: no active connect"
-                                  + " thread");
-        }
-
-        BluetoothSocket socket = mConnectThread.getSocket();
-        if (socket == null) {
-            throw new IOException("bluetoothSocketRequestMaximumTxDataLength: no active connect"
-                                  + " socket");
-        }
-        socket.requestMaximumTxDataLength();
-    }
-
-    /**
      * Sends ASCII characters over the currently open Bluetooth connection
      *
      * @param ascii the string to write
@@ -716,11 +691,7 @@ public class BluetoothSocketConnFacade extends RpcReceiver {
                         tmp = device.createInsecureL2capChannel(psmValue);
                     }
                 } else {
-                    if (securedConn) {
-                        tmp = device.createL2capSocket(psmValue);
-                    } else {
-                        tmp = device.createInsecureL2capSocket(psmValue);
-                    }
+                    Log.e("Refused to call unsuported L2cap socket");
                 }
                 // Secured version: tmp = device.createL2capSocket(0x1011);
                 // tmp = device.createRfcommSocketToServiceRecord(UUID.fromString(uuid));
@@ -805,11 +776,7 @@ public class BluetoothSocketConnFacade extends RpcReceiver {
                         tmp = mBluetoothAdapter.listenUsingInsecureL2capChannel();
                     }
                 } else {
-                    if (securedConn) {
-                        tmp = mBluetoothAdapter.listenUsingL2capOn(psmValue);
-                    } else {
-                        tmp = mBluetoothAdapter.listenUsingInsecureL2capOn(psmValue);
-                    }
+                    Log.e("Refused to call unsuported L2cap socket");
                 }
             } catch (IOException createSocketException) {
                 Log.e("Failed to create Coc socket: " + createSocketException.toString());

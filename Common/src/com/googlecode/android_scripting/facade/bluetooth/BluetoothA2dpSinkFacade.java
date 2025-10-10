@@ -70,7 +70,8 @@ public class BluetoothA2dpSinkFacade extends RpcReceiver {
      */
     public Boolean a2dpSinkConnect(BluetoothDevice device) {
         if (sA2dpSinkProfile == null) return false;
-        return sA2dpSinkProfile.connect(device);
+        return sA2dpSinkProfile.setConnectionPolicy(
+                device, BluetoothProfile.CONNECTION_POLICY_ALLOWED);
     }
 
     /**
@@ -80,7 +81,8 @@ public class BluetoothA2dpSinkFacade extends RpcReceiver {
      */
     public Boolean a2dpSinkDisconnect(BluetoothDevice device) {
         if (sA2dpSinkProfile == null) return false;
-        return sA2dpSinkProfile.disconnect(device);
+        return sA2dpSinkProfile.setConnectionPolicy(
+                device, BluetoothProfile.CONNECTION_POLICY_FORBIDDEN);
     }
 
     /**

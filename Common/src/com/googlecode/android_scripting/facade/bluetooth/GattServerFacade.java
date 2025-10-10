@@ -652,68 +652,6 @@ public class GattServerFacade extends RpcReceiver {
     }
 
     /**
-     * Get Read value by instance ID
-     *
-     * @param instanceId of the Characteristic of the Descriptor to get the value of
-     * @throws Exception
-     */
-    @Rpc(description = "Returns the read value of a matching instanceId")
-    public byte[] gattServerGetReadValueByInstanceId(
-            @RpcParameter(name = "instanceId") Integer instanceId)
-            throws Exception {
-        for (BluetoothGattCharacteristic mGattChar : mCharacteristicList.values()) {
-            if (mGattChar.getInstanceId() == instanceId) {
-                        Log.i("Found Characteristic to get value. instanceId: "
-                        + Integer.toString(instanceId)
-                        + " UUID: " + mGattChar.getUuid().toString());
-                return mGattChar.getValue();
-            }
-            List<BluetoothGattDescriptor> descList = mGattChar.getDescriptors();
-            for (BluetoothGattDescriptor mGattDesc : descList) {
-                if (mGattDesc.getInstanceId() == instanceId) {
-                    Log.i("Found Descriptor to get value. instanceId: "
-                        + Integer.toString(instanceId)
-                        + " UUID: " + mGattDesc.getUuid().toString());
-                    return mGattDesc.getValue();
-                }
-            }
-        }
-        throw new Exception("Cannot find instance ID:" + instanceId);
-    }
-
-    /**
-     * Set value by instance ID
-     *
-     * @param instanceId of the Characteristic of the Descriptor to get the value of
-     * @value value set bytearray value
-     * @throws Exception
-     */
-    @Rpc(description = "Sets the value of a Characteristic or Descriptor by instance id")
-    public boolean gattServerSetByteArrayValueByInstanceId(
-            @RpcParameter(name = "instanceId") Integer instanceId,
-            @RpcParameter(name = "value") byte[] value)
-            throws Exception {
-        for (BluetoothGattCharacteristic mGattChar : mCharacteristicList.values()) {
-            if (mGattChar.getInstanceId() == instanceId) {
-                        Log.i("Found Characteristic to get value. instanceId: "
-                        + Integer.toString(instanceId)
-                        + " UUID: " + mGattChar.getUuid().toString());
-                return mGattChar.setValue(value);
-            }
-            List<BluetoothGattDescriptor> descList = mGattChar.getDescriptors();
-            for (BluetoothGattDescriptor mGattDesc : descList) {
-                if (mGattDesc.getInstanceId() == instanceId) {
-                    Log.i("Found Descriptor to set value. instanceId: "
-                        + Integer.toString(instanceId)
-                        + " UUID: " + mGattDesc.getUuid().toString());
-                    return mGattDesc.setValue(value);
-                }
-            }
-        }
-        throw new Exception("Cannot find instance ID:" + instanceId);
-    }
-
-    /**
      * Set BluetoothGattService instance ID to input value
      *
      * @param index the bluetooth gatt service
@@ -832,24 +770,6 @@ public class GattServerFacade extends RpcReceiver {
             throws Exception {
         if (mCharacteristicList.get(index) != null) {
             return mCharacteristicList.get(index).setValue(value, type, offset);
-        } else {
-            throw new Exception("Invalid index input:" + index);
-        }
-    }
-
-    /**
-     * Set the instance id of the Bluetooth Gatt Characteristic
-     *
-     * @param index the bluetooth gatt characteristic
-     * @param instanceId the instanceId to set
-     * @throws Exception
-     */
-    @Rpc(description = "Set Caracteristic Instance id")
-    public void gattServerCharacteristicSetInstanceId(@RpcParameter(name = "index") Integer index,
-            @RpcParameter(name = "instanceId") Integer instanceId)
-            throws Exception {
-        if (mCharacteristicList.get(index) != null) {
-            mCharacteristicList.get(index).setInstanceId(instanceId);
         } else {
             throw new Exception("Invalid index input:" + index);
         }
@@ -991,7 +911,6 @@ public class GattServerFacade extends RpcReceiver {
             mResults.putInt("requestId", requestId);
             mResults.putInt("offset", offset);
             mResults.putParcelable("BluetoothDevice", device);
-            mResults.putInt("instanceId", descriptor.getInstanceId());
             mResults.putInt("permissions", descriptor.getPermissions());
             mResults.putString("uuid", descriptor.getUuid().toString());
             mEventFacade.postEvent(
@@ -1010,7 +929,6 @@ public class GattServerFacade extends RpcReceiver {
             mResults.putBoolean("preparedWrite", preparedWrite);
             mResults.putBoolean("responseNeeded", responseNeeded);
             mResults.putByteArray("value", value);
-            mResults.putInt("instanceId", descriptor.getInstanceId());
             mResults.putInt("permissions", descriptor.getPermissions());
             mResults.putString("uuid", descriptor.getUuid().toString());
             mEventFacade.postEvent(

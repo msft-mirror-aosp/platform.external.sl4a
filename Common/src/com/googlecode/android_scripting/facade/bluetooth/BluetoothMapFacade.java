@@ -66,24 +66,12 @@ public class BluetoothMapFacade extends RpcReceiver {
     }
 
     /**
-     * Disconnect Map Profile.
-     * @param device - the BluetoothDevice object to connect to.
-     * @return if the disconnection was successfull or not.
-     */
-    public Boolean mapDisconnect(BluetoothDevice device) {
-        if (sMapProfile.getConnectionPolicy(device) > BluetoothProfile.CONNECTION_POLICY_ALLOWED) {
-            sMapProfile.setConnectionPolicy(device, BluetoothProfile.CONNECTION_POLICY_ALLOWED);
-        }
-        return sMapProfile.disconnect(device);
-    }
-
-    /**
      * Is Map profile ready.
      * @return if Map profile is ready or not.
      */
     @Rpc(description = "Is Map profile ready.")
     public Boolean bluetoothMapIsReady() {
-    return sIsMapReady;
+        return sIsMapReady;
     }
 
     /**
@@ -101,14 +89,9 @@ public class BluetoothMapFacade extends RpcReceiver {
                 sMapProfile.getConnectedDevices();
         Log.d("Connected map devices: " + connectedMapDevices);
         BluetoothDevice mDevice = BluetoothFacade.getDevice(connectedMapDevices, deviceID);
-        if (!connectedMapDevices.isEmpty()
-                && connectedMapDevices.get(0).equals(mDevice)) {
-            if (sMapProfile.getConnectionPolicy(mDevice)
-                    > BluetoothProfile.CONNECTION_POLICY_ALLOWED) {
-                sMapProfile.setConnectionPolicy(
-                        mDevice, BluetoothProfile.CONNECTION_POLICY_ALLOWED);
-            }
-            return sMapProfile.disconnect(mDevice);
+        if (!connectedMapDevices.isEmpty() && connectedMapDevices.get(0).equals(mDevice)) {
+            return sMapProfile.setConnectionPolicy(
+                            mDevice, BluetoothProfile.CONNECTION_POLICY_FORBIDDEN);
         } else {
             return false;
         }
@@ -125,17 +108,6 @@ public class BluetoothMapFacade extends RpcReceiver {
                 new int[] {BluetoothProfile.STATE_CONNECTED,
                     BluetoothProfile.STATE_CONNECTING,
                     BluetoothProfile.STATE_DISCONNECTING});
-    }
-
-    /**
-     * Get the currently connected remote Bluetooth device (PCE).
-     * @return remote Bluetooth device which is currently conencted.
-     */
-    @Rpc(description =
-            "Get the currently connected remote Bluetooth device (PCE).")
-    public BluetoothDevice bluetoothMapGetClient() {
-        if (sMapProfile == null) return null;
-        return sMapProfile.getClient();
     }
 
     @Override

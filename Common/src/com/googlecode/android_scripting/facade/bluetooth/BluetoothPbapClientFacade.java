@@ -76,7 +76,8 @@ public class BluetoothPbapClientFacade extends RpcReceiver {
      */
     public Boolean pbapClientConnect(BluetoothDevice device) {
         if (sPbapClientProfile == null) return false;
-        return sPbapClientProfile.connect(device);
+        return sPbapClientProfile.setConnectionPolicy(
+                device, BluetoothProfile.CONNECTION_POLICY_ALLOWED);
     }
 
     /**
@@ -86,7 +87,8 @@ public class BluetoothPbapClientFacade extends RpcReceiver {
      */
     public Boolean pbapClientDisconnect(BluetoothDevice device) {
         if (sPbapClientProfile == null) return false;
-        return sPbapClientProfile.disconnect(device);
+        return sPbapClientProfile.setConnectionPolicy(
+                device, BluetoothProfile.CONNECTION_POLICY_FORBIDDEN);
     }
 
     /**
