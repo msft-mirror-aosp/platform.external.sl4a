@@ -115,18 +115,10 @@ public class BluetoothPairingHelper extends BroadcastReceiver {
                 Intent newIntent =
                         new Intent(
                             BluetoothDevice.ACTION_CONNECTION_ACCESS_REPLY);
-                String mReturnPackage =
-                        intent.getStringExtra(
-                        BluetoothDevice.EXTRA_PACKAGE_NAME);
-                String mReturnClass =
-                        intent.getStringExtra(BluetoothDevice.EXTRA_CLASS_NAME);
                 int mRequestType =
                         intent.getIntExtra(
                             BluetoothDevice.EXTRA_ACCESS_REQUEST_TYPE,
                                 BluetoothDevice.REQUEST_TYPE_MESSAGE_ACCESS);
-                if (mReturnPackage != null && mReturnClass != null) {
-                    newIntent.setClassName(mReturnPackage, mReturnClass);
-                }
                 newIntent.putExtra(BluetoothDevice.EXTRA_CONNECTION_ACCESS_RESULT,
                         BluetoothDevice.CONNECTION_ACCESS_YES);
                 newIntent.putExtra(BluetoothDevice.EXTRA_ALWAYS_ALLOWED, true);

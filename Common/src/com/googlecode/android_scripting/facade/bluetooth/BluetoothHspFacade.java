@@ -195,23 +195,6 @@ public class BluetoothHspFacade extends RpcReceiver {
     }
 
     /**
-     * Force SCO audio on DUT, ignore all other restrictions
-     *
-     * @param force True to force SCO audio, False to resume normal
-     * @return True if the setup is successful
-     */
-    @Rpc(description = "Force SCO audio connection on DUT.")
-    public Boolean bluetoothHspForceScoAudio(
-            @RpcParameter(name = "force", description = "whether to force SCO audio")
-                Boolean force) {
-        if (!waitHspReady(10)) {
-            return false;
-        }
-        sHspProfile.setForceScoAudio(force);
-        return true;
-    }
-
-    /**
      * Connect SCO audio to a remote device
      *
      * @param deviceAddress the Bluetooth MAC address of remote device

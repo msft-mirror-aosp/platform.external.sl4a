@@ -519,7 +519,7 @@ public class BluetoothConnectionFacade extends RpcReceiver {
                     mPbapClientProfile.pbapClientDisconnect(device);
                     break;
                 case BluetoothProfile.MAP_CLIENT:
-                    mMapClientProfile.mapDisconnect(device);
+                    mMapClientProfile.mapClientDisconnect(device);
                     break;
                 default:
                     Log.d("Unknown Profile Id to disconnect from. Quitting");

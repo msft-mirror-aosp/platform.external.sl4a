@@ -268,17 +268,6 @@ public class BluetoothLeAdvertisingSetFacade extends RpcReceiver {
     }
 
     /**
-     * Get the address associated with this Advertising set. This method returns immediately,
-     * the operation result is delivered through callback.onOwnAddressRead().
-     * This is for PTS only.
-     */
-    @Rpc(description = "Get own address")
-    public void bleAdvSetGetOwnAddress(
-            @RpcParameter(name = "setIndex") Integer setIndex) throws Exception {
-        mAdvertisingSets.get(setIndex).getOwnAddress();
-    }
-
-    /**
      * Enables Advertising. This method returns immediately, the operation status is
      * delivered through callback.onAdvertisingEnabled().
      *
@@ -416,17 +405,6 @@ public class BluetoothLeAdvertisingSetFacade extends RpcReceiver {
         public void onPeriodicAdvertisingEnabled(AdvertisingSet advertisingSet, boolean enable,
                 int status) {
             sendGeneric("onPeriodicAdvertisingEnabled", setIndex, status, enable);
-        }
-
-        @Override
-        public void onOwnAddressRead(AdvertisingSet advertisingSet, int addressType,
-                String address) {
-            Log.d("onOwnAddressRead" + mEventType + " " + setIndex);
-            Bundle results = new Bundle();
-            results.putInt("setId", setIndex);
-            results.putInt("addressType", addressType);
-            results.putString("address", address);
-            mEventFacade.postEvent(mEventType + setIndex + "onOwnAddressRead", results);
         }
 
         public void sendGeneric(String cb, int setIndex, int status) {

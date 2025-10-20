@@ -547,7 +547,6 @@ public class JsonBuilder {
     private static Object buildJsonBluetoothGattDescriptor(
             BluetoothGattDescriptor data) throws JSONException {
         JSONObject result = new JSONObject();
-        result.put("instanceId", data.getInstanceId());
         result.put("permissions", data.getPermissions());
         result.put("characteristic", data.getCharacteristic());
         result.put("uuid", data.getUuid().toString());

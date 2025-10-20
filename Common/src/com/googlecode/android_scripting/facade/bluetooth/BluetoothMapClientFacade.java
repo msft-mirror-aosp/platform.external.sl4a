@@ -37,6 +37,7 @@ import com.googlecode.android_scripting.jsonrpc.RpcReceiver;
 import com.googlecode.android_scripting.rpc.Rpc;
 import com.googlecode.android_scripting.rpc.RpcParameter;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class BluetoothMapClientFacade extends RpcReceiver {
@@ -73,15 +74,15 @@ public class BluetoothMapClientFacade extends RpcReceiver {
 
         mNotificationReceiver = new NotificationReceiver();
         mSendIntent = new Intent(
-                BluetoothMapClient.ACTION_MESSAGE_SENT_SUCCESSFULLY);
+                "BluetoothMapClient.ACTION_MESSAGE_SENT_SUCCESSFULLY");
         mDeliveryIntent = new Intent(
-                BluetoothMapClient.ACTION_MESSAGE_DELIVERED_SUCCESSFULLY);
+                "BluetoothMapClient.ACTION_MESSAGE_DELIVERED_SUCCESSFULLY");
         IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(BluetoothMapClient.ACTION_MESSAGE_RECEIVED);
+        intentFilter.addAction("BluetoothMapClient.ACTION_MESSAGE_RECEIVED");
         intentFilter.addAction(
-                BluetoothMapClient.ACTION_MESSAGE_SENT_SUCCESSFULLY);
+                "BluetoothMapClient.ACTION_MESSAGE_SENT_SUCCESSFULLY");
         intentFilter.addAction(
-                BluetoothMapClient.ACTION_MESSAGE_DELIVERED_SUCCESSFULLY);
+                "BluetoothMapClient.ACTION_MESSAGE_DELIVERED_SUCCESSFULLY");
         mService.registerReceiver(mNotificationReceiver, intentFilter, Context.RECEIVER_EXPORTED);
         Log.d("notification receiver registered");
     }
@@ -101,12 +102,14 @@ public class BluetoothMapClientFacade extends RpcReceiver {
 
     public Boolean mapClientConnect(BluetoothDevice device) {
         if (sMapProfile == null) return false;
-        return sMapProfile.connect(device);
+        return sMapProfile.setConnectionPolicy(
+                        device, BluetoothProfile.CONNECTION_POLICY_ALLOWED);
     }
 
     public Boolean mapClientDisconnect(BluetoothDevice device) {
         if (sMapProfile == null) return false;
-        return sMapProfile.disconnect(device);
+        return sMapProfile.setConnectionPolicy(
+                        device, BluetoothProfile.CONNECTION_POLICY_FORBIDDEN);
     }
 
     @Rpc(description = "Connect to an MAP MSE device.")
@@ -120,7 +123,7 @@ public class BluetoothMapClientFacade extends RpcReceiver {
         BluetoothDevice mDevice = BluetoothFacade.getDevice(
                 mBluetoothAdapter.getBondedDevices(), device);
         Log.d("Connecting to device " + mDevice.getAlias());
-        return sMapProfile.connect(mDevice);
+        return mapClientConnect(mDevice);
     }
 
     @Rpc(description = "Send a (text) message via bluetooth.")
@@ -148,19 +151,12 @@ public class BluetoothMapClientFacade extends RpcReceiver {
                         + phoneNumbers[i]);
                 contacts[i] = Uri.parse(phoneNumbers[i]);
             }
-            return sMapProfile.sendMessage(device, contacts, message, mSentIntent,
+            return sMapProfile.sendMessage(device,  Arrays.asList(contacts), message, mSentIntent,
                     mDeliveredIntent);
         } catch (Exception e) {
             Log.d("Error sending message, no such device " + e.toString());
         }
         return false;
-    }
-
-    public Boolean mapDisconnect(BluetoothDevice device) {
-        if (sMapProfile.getConnectionPolicy(device) > BluetoothProfile.CONNECTION_POLICY_ALLOWED) {
-            sMapProfile.setConnectionPolicy(device, BluetoothProfile.CONNECTION_POLICY_ALLOWED);
-        }
-        return sMapProfile.disconnect(device);
     }
 
     @Rpc(description = "Is Map profile ready.")
@@ -182,12 +178,7 @@ public class BluetoothMapClientFacade extends RpcReceiver {
                 connectedMapDevices, deviceID);
         if (!connectedMapDevices.isEmpty()
                 && connectedMapDevices.get(0).equals(mDevice)) {
-            if (sMapProfile.getConnectionPolicy(mDevice)
-                    > BluetoothProfile.CONNECTION_POLICY_ALLOWED) {
-                sMapProfile.setConnectionPolicy(
-                        mDevice, BluetoothProfile.CONNECTION_POLICY_ALLOWED);
-            }
-            return sMapProfile.disconnect(mDevice);
+            return mapClientDisconnect(mDevice);
         } else {
             return false;
         }
@@ -212,16 +203,16 @@ public class BluetoothMapClientFacade extends RpcReceiver {
         public void onReceive(Context context, Intent intent) {
             Log.d("OnReceive" + intent);
             String action = intent.getAction();
-            if (action.equals(BluetoothMapClient.ACTION_MESSAGE_RECEIVED)) {
+            if (action.equals("BluetoothMapClient.ACTION_MESSAGE_RECEIVED")) {
                 mEventFacade.postEvent(MAP_EVENT,
                         intent.getStringExtra(android.content.Intent.EXTRA_TEXT));
             } else if (action.equals(
-                    BluetoothMapClient.ACTION_MESSAGE_SENT_SUCCESSFULLY)) {
+                    "BluetoothMapClient.ACTION_MESSAGE_SENT_SUCCESSFULLY")) {
                 mEventFacade.postEvent(MAP_SMS_SENT_SUCCESS,
                         intent.getStringExtra(
                             android.content.Intent.EXTRA_TEXT));
             } else if (action.equals(
-                    BluetoothMapClient.ACTION_MESSAGE_DELIVERED_SUCCESSFULLY)) {
+                    "BluetoothMapClient.ACTION_MESSAGE_DELIVERED_SUCCESSFULLY")) {
                 mEventFacade.postEvent(MAP_SMS_DELIVER_SUCCESS,
                         intent.getStringExtra(android.content.Intent.EXTRA_TEXT));
             }
