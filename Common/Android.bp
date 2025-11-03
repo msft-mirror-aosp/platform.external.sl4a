@@ -59,4 +59,7 @@ java_library {
         ":cellbroadcast-util-shared-srcs",
         ":cellbroadcast-constants-shared-srcs",
     ],
+    lint: {
+        baseline_filename: "lint-baseline.xml",
+    },
 }
