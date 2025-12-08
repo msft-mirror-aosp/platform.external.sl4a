@@ -49,6 +49,23 @@ import com.googlecode.android_scripting.facade.EventFacade;
 
 public class InCallServiceImpl extends InCallService {
 
+    /**
+     * Copied from {@link android.telecom.Call.Details.CAPABILITY_UNUSED_1}
+     */
+    private static final int CAPABILITY_UNUSED_1 = 0x00000010;
+    /**
+     * Copied from {@link android.telecom.Call.Details.CAPABILITY_SPEED_UP_MT_AUDIO}
+     */
+    private static final int CAPABILITY_SPEED_UP_MT_AUDIO = 0x00040000;
+    /**
+     * Copied from {@link android.telecom.Call.Details.CAPABILITY_CAN_UPGRADE_TO_VIDEO}
+     */
+    private static final int CAPABILITY_CAN_UPGRADE_TO_VIDEO = 0x00080000;
+    /**
+     * Copied from {@link android.telecom.VideoProfile.QUALITY_UNKNOWN}
+     */
+    private static final int QUALITY_UNKNOWN = 0;
+
     private static InCallServiceImpl sService = null;
 
     private static PlayAudioInCall playAudioInCall;
@@ -880,7 +897,7 @@ public class InCallServiceImpl extends InCallService {
             return;
         }
 
-        phone.setProximitySensorOff(screenOn);
+        // phone.setProximitySensorOff(screenOn);
     }
 
     public static CallAudioState serviceGetCallAudioState() {
@@ -1018,7 +1035,7 @@ public class InCallServiceImpl extends InCallService {
                 videoStateString, videoState, videoQualityString, videoQuality));
 
         if (videoState == CallCallback.STATE_INVALID ||
-                videoQuality == QUALITY_INVALID || videoQuality == VideoProfile.QUALITY_UNKNOWN) {
+                videoQuality == QUALITY_INVALID || videoQuality == QUALITY_UNKNOWN) {
             Log.d("Invalid session modify request!");
             return;
         }
@@ -1042,7 +1059,7 @@ public class InCallServiceImpl extends InCallService {
                 videoStateString, videoState, videoQualityString, videoQuality));
 
         if (videoState == CallCallback.STATE_INVALID ||
-                videoQuality == QUALITY_INVALID || videoQuality == VideoProfile.QUALITY_UNKNOWN) {
+                videoQuality == QUALITY_INVALID || videoQuality == QUALITY_UNKNOWN) {
             Log.d("Invalid session modify request!");
             return;
         }
@@ -1192,7 +1209,7 @@ public class InCallServiceImpl extends InCallService {
 
         switch (quality.toUpperCase()) {
             case TelephonyConstants.VT_VIDEO_QUALITY_UNKNOWN:
-                return VideoProfile.QUALITY_UNKNOWN;
+                return QUALITY_UNKNOWN;
             case TelephonyConstants.VT_VIDEO_QUALITY_HIGH:
                 return VideoProfile.QUALITY_HIGH;
             case TelephonyConstants.VT_VIDEO_QUALITY_MEDIUM:
@@ -1209,7 +1226,7 @@ public class InCallServiceImpl extends InCallService {
 
     public static String getVideoCallQualityString(int quality) {
         switch (quality) {
-            case VideoProfile.QUALITY_UNKNOWN:
+            case QUALITY_UNKNOWN:
                 return TelephonyConstants.VT_VIDEO_QUALITY_UNKNOWN;
             case VideoProfile.QUALITY_HIGH:
                 return TelephonyConstants.VT_VIDEO_QUALITY_HIGH;
@@ -1399,7 +1416,7 @@ public class InCallServiceImpl extends InCallService {
                 return TelephonyConstants.CALL_CAPABILITY_MERGE_CONFERENCE;
             case Call.Details.CAPABILITY_SWAP_CONFERENCE:
                 return TelephonyConstants.CALL_CAPABILITY_SWAP_CONFERENCE;
-            case Call.Details.CAPABILITY_UNUSED_1:
+            case CAPABILITY_UNUSED_1:
                 return TelephonyConstants.CALL_CAPABILITY_UNUSED_1;
             case Call.Details.CAPABILITY_RESPOND_VIA_TEXT:
                 return TelephonyConstants.CALL_CAPABILITY_RESPOND_VIA_TEXT;
@@ -1423,9 +1440,9 @@ public class InCallServiceImpl extends InCallService {
                 return TelephonyConstants.CALL_CAPABILITY_SEPARATE_FROM_CONFERENCE;
             case Call.Details.CAPABILITY_DISCONNECT_FROM_CONFERENCE:
                 return TelephonyConstants.CALL_CAPABILITY_DISCONNECT_FROM_CONFERENCE;
-            case Call.Details.CAPABILITY_SPEED_UP_MT_AUDIO:
+            case CAPABILITY_SPEED_UP_MT_AUDIO:
                 return TelephonyConstants.CALL_CAPABILITY_SPEED_UP_MT_AUDIO;
-            case Call.Details.CAPABILITY_CAN_UPGRADE_TO_VIDEO:
+            case CAPABILITY_CAN_UPGRADE_TO_VIDEO:
                 return TelephonyConstants.CALL_CAPABILITY_CAN_UPGRADE_TO_VIDEO;
             case Call.Details.CAPABILITY_CAN_PAUSE_VIDEO:
                 return TelephonyConstants.CALL_CAPABILITY_CAN_PAUSE_VIDEO;
@@ -1439,7 +1456,7 @@ public class InCallServiceImpl extends InCallService {
                 Call.Details.CAPABILITY_SUPPORT_HOLD,
                 Call.Details.CAPABILITY_MERGE_CONFERENCE,
                 Call.Details.CAPABILITY_SWAP_CONFERENCE,
-                Call.Details.CAPABILITY_UNUSED_1,
+                CAPABILITY_UNUSED_1,
                 Call.Details.CAPABILITY_RESPOND_VIA_TEXT,
                 Call.Details.CAPABILITY_MUTE,
                 Call.Details.CAPABILITY_MANAGE_CONFERENCE,
@@ -1451,8 +1468,8 @@ public class InCallServiceImpl extends InCallService {
                 Call.Details.CAPABILITY_SUPPORTS_VT_REMOTE_BIDIRECTIONAL,
                 Call.Details.CAPABILITY_SEPARATE_FROM_CONFERENCE,
                 Call.Details.CAPABILITY_DISCONNECT_FROM_CONFERENCE,
-                Call.Details.CAPABILITY_SPEED_UP_MT_AUDIO,
-                Call.Details.CAPABILITY_CAN_UPGRADE_TO_VIDEO,
+                CAPABILITY_SPEED_UP_MT_AUDIO,
+                CAPABILITY_CAN_UPGRADE_TO_VIDEO,
                 Call.Details.CAPABILITY_CAN_PAUSE_VIDEO
         };
 
