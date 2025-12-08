@@ -61,7 +61,7 @@ public class TelecomManagerFacade extends RpcReceiver {
     public TelecomManagerFacade(FacadeManager manager) {
         super(manager);
         mService = manager.getService();
-        mTelecomManager = new TelecomManager(mService);
+        mTelecomManager = mService.getSystemService(TelecomManager.class);
         mTelephonyManager = new TelephonyManager(mService);
         mAndroidFacade = manager.getReceiver(AndroidFacade.class);
         InCallServiceImpl.setEventFacade(
